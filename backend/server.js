@@ -12,9 +12,8 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '50mb' })); 
 
-// Servir archivos estáticos del frontend
-// Usamos path.resolve para asegurar que la ruta sea exacta en Render
-app.use(express.static(path.resolve(__dirname, '../frontend')));
+// NOTA: No ponemos el express.static aquí arriba porque 
+// ganaría el index.html por defecto. Lo ponemos más abajo.
 
 const TOKEN_RENIEC = process.env.TOKEN_RENIEC || 'sk_14781.y2AEO9v8Sx51hWfuNL0dVyDdK082pVsu';
 
@@ -119,19 +118,24 @@ app.get('/api/asistencia', async (req, res) => {
 });
 
 // =====================================================
-// RUTA FINAL PARA EL FRONTEND
+// RUTA FINAL PARA EL FRONTEND (CORREGIDO PARA PRIORIZAR LOGIN)
 // =====================================================
 
-// Ruta para el inicio (Login)
+// 1. Forzamos que la raíz mande a login.html
 app.get('/', (req, res) => {
     res.sendFile(path.resolve(__dirname, '..', 'frontend', 'login.html'));
 });
 
-// Cualquier otra ruta redirige al login
+// 2. Cargamos los archivos estáticos DESPUÉS de la ruta raíz
+// para que no cargue el index.html por defecto
+app.use(express.static(path.resolve(__dirname, '../frontend')));
+
+// 3. Cualquier otra ruta no definida (como error 404) también manda al login
 app.get('*', (req, res) => {
     res.sendFile(path.resolve(__dirname, '..', 'frontend', 'login.html'));
 });
 
+// Puerto dinámico para Render
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`🚀 Servidor funcionando en puerto: ${PORT}`);
