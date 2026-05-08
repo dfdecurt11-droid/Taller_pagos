@@ -544,15 +544,30 @@
         function abrirPago(id, n, m) {
             document.getElementById('txtPagoSub').innerText = `Se liquidará un total de S/ ${m.toFixed(2)} a favor de ${n}.`;
             openModal('modalPago');
+            
             document.getElementById('btnOkPago').onclick = () => {
                 if(presupuesto >= m) {
+                    // 1. Descontar del presupuesto lógico
                     presupuesto -= m;
+                    
+                    // 2. ACTUALIZACIÓN VISUAL INMEDIATA:
+                    document.getElementById('valPresupuesto').innerText = presupuesto.toFixed(2);
+                    
+                    // 3. Limpiar datos del trabajador
                     const t = trabajadores.find(x => x.id === id);
-                    t.horasAcumuladas = 0; t.montoAPagar = 0; t.historial = []; 
+                    t.horasAcumuladas = 0; 
+                    t.montoAPagar = 0; 
+                    t.historial = []; 
+                    
+                    // 4. Guardar y refrescar la tabla
                     guardarEnLocalStorage();
-                    closeModal('modalPago'); render();
+                    closeModal('modalPago'); 
+                    render();
+                    
                     showToast(`Pago de S/ ${m.toFixed(2)} procesado`);
-                } else alert("Fondo de caja insuficiente");
+                } else {
+                    alert("Fondo de caja insuficiente");
+                }
             };
         }
 
