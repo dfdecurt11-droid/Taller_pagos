@@ -9,11 +9,11 @@
     
     <style>
         :root {
-            --primary-dark: #0b1120; /* Fondo Sidebar ultra oscuro (Igual a imagen) */
-            --nav-active: #1e293b;   /* Color del item activo */
-            --accent: #3b82f6;      
-            --danger-btn: #dc2626;   /* Rojo sólido botón salir */
-            --bg-main: #f1f5f9;     
+            --primary-dark: #0b1120;
+            --nav-active: #1e293b;
+            --accent: #3b82f6;
+            --danger-btn: #dc2626;
+            --bg-main: #f1f5f9;
             --white: #ffffff;
         }
 
@@ -26,7 +26,6 @@
             min-height: 100vh;
         }
         
-        /* --- SIDEBAR IDENTICO AL INDEX --- */
         .sidebar { 
             width: 260px; 
             background: var(--primary-dark); 
@@ -64,7 +63,6 @@
             transition: all 0.2s ease;
         }
 
-        /* Item activo (Dashboard/Asistencia) */
         .nav-item.active { 
             background: var(--nav-active); 
             color: white; 
@@ -79,7 +77,6 @@
             text-align: center;
         }
 
-        /* Botón Salir (Fondo Rojo como la imagen) */
         .logout-container { padding: 1.5rem; }
         
         .btn-logout {
@@ -103,7 +100,6 @@
 
         .btn-logout:hover { opacity: 0.9; }
 
-        /* --- CONTENIDO PRINCIPAL --- */
         .content { 
             margin-left: 260px; 
             width: calc(100% - 260px); 
@@ -151,7 +147,6 @@
         }
         .search-container i { position: absolute; left: 18px; top: 17px; color: #94a3b8; }
 
-        /* TABLA */
         .table-wrapper { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; min-width: 800px; }
         th { 
@@ -162,7 +157,6 @@
         }
         td { padding: 18px 16px; border-bottom: 1px solid #f1f5f9; font-size: 0.95rem; }
 
-        /* BOTONES ACCIÓN */
         .btn-marc {
             padding: 10px 18px; border-radius: 10px; border: none; cursor: pointer;
             font-weight: 700; display: inline-flex; align-items: center; gap: 8px;
@@ -171,7 +165,6 @@
         .btn-in { background: #10b981; color: white; }
         .btn-out { background: #6366f1; color: white; }
 
-        /* TOAST */
         .toast { 
             position: fixed; bottom: 30px; right: 30px; 
             background: #1e293b; color: white; 
@@ -203,6 +196,7 @@
             <div class="nav-item active" onclick="window.location.href='asistencia.html'">
                 <i class="fa-solid fa-calendar-check"></i> <span>Asistencia</span>
             </div>
+        </nav>
     </div>
 
     <div class="content">
@@ -228,6 +222,7 @@
                             <th>Área</th>
                             <th>Última Entrada</th>
                             <th>Última Salida</th>
+                            <th>Pago Generado (Hoy)</th>
                             <th style="text-align:right">Marcación</th>
                         </tr>
                     </thead>
@@ -241,6 +236,9 @@
 
     <script>
         let trabajadores = [];
+        const SUELDO_BASE = 300;
+        const HORAS_SEMANALES = 62;
+        const COSTO_HORA = SUELDO_BASE / HORAS_SEMANALES;
 
         function actualizarReloj() {
             const ahora = new Date();
@@ -263,7 +261,10 @@
         }
 
         function realizarMarcado(id, tipo) {
+            // Ignoramos segundos: seteamos a 0 para el cálculo preciso de minutos
             const ahora = new Date();
+            ahora.setSeconds(0, 0); 
+            
             const idx = trabajadores.findIndex(t => t.id === id);
             if (idx === -1) return;
 
@@ -272,9 +273,29 @@
                 trabajadores[idx].horaSalidaTemp = null;
                 showToast(`✅ Entrada: ${trabajadores[idx].nombre}`);
             } else {
-                if(!trabajadores[idx].horaEntradaTemp) { alert("Debe marcar entrada primero"); return; }
+                if(!trabajadores[idx].horaEntradaTemp) { 
+                    alert("Debe marcar entrada primero"); 
+                    return; 
+                }
+                
                 trabajadores[idx].horaSalidaTemp = ahora.toISOString();
-                showToast(`🚀 Salida: ${trabajadores[idx].nombre}`);
+                
+                // CÁLCULO DE PAGO
+                const entrada = new Date(trabajadores[idx].horaEntradaTemp);
+                const salida = ahora;
+                
+                // Diferencia en milisegundos, luego a horas totales
+                const diffMs = salida - entrada;
+                const horasTrabajadas = diffMs / (1000 * 60 * 60); 
+                
+                // Pago = Horas * (300/62)
+                const pagoDelTurno = horasTrabajadas * COSTO_HORA;
+                
+                // Acumulamos el pago (inicializar si no existe)
+                trabajadores[idx].montoAPagar = (trabajadores[idx].montoAPagar || 0) + pagoDelTurno;
+                trabajadores[idx].horasAcumuladas = (trabajadores[idx].horasAcumuladas || 0) + horasTrabajadas;
+
+                showToast(`🚀 Salida: ${trabajadores[idx].nombre}. Pago calculado.`);
             }
             
             localStorage.setItem('taller_trabajadores', JSON.stringify(trabajadores));
@@ -285,18 +306,22 @@
             const cuerpo = document.getElementById('tablaAsistencia');
             const lista = trabajadores.filter(t => t.nombre.toLowerCase().includes(filtro.toLowerCase()));
 
-            cuerpo.innerHTML = lista.map(t => `
+            cuerpo.innerHTML = lista.map(t => {
+                const pagoHoy = t.montoAPagar ? t.montoAPagar.toFixed(2) : "0.00";
+                return `
                 <tr>
                     <td><b>${t.nombre}</b></td>
                     <td><span style="background:#f1f5f9; padding:4px 8px; border-radius:6px; font-size:0.8rem;">${t.area || 'Taller'}</span></td>
                     <td>${formatFechaHora(t.horaEntradaTemp)}</td>
                     <td>${formatFechaHora(t.horaSalidaTemp)}</td>
+                    <td><span style="color:#10b981; font-weight:700;">S/ ${pagoHoy}</span></td>
                     <td style="text-align:right">
                         <button class="btn-marc btn-in" onclick="realizarMarcado(${t.id}, 'entrada')">Entrada</button>
                         <button class="btn-marc btn-out" onclick="realizarMarcado(${t.id}, 'salida')">Salida</button>
                     </td>
                 </tr>
-            `).join('');
+                `;
+            }).join('');
         }
 
         function filtrarTrabajadores() { renderTable(document.getElementById('busquedaNombre').value); }
@@ -307,8 +332,6 @@
             t.style.display = 'block';
             setTimeout(() => { t.style.display = 'none'; }, 3000);
         }
-
-        function confirmarSalida() { if(confirm("¿Desea cerrar sesión?")) window.location.href = 'login.html'; }
 
         document.addEventListener('DOMContentLoaded', () => {
             actualizarReloj();

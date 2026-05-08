@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Taller Pro | Gestión de Planilla</title>
-    <!-- Google Fonts para un look moderno -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -199,7 +198,6 @@
     </div>
 
     <div class="content">
-        <!-- BARRA SUPERIOR -->
         <div class="top-bar">
             <div class="admin-profile">
                 <img src="https://i.imgur.com/8Km9tLL.png" class="admin-photo" id="header-avatar">
@@ -218,7 +216,6 @@
             </div>
         </div>
 
-        <!-- DASHBOARD STATS -->
         <div class="dashboard-grid">
             <div class="card" style="border-top: 4px solid var(--accent);">
                 <div class="stat-label">Presupuesto Disponible</div>
@@ -232,7 +229,6 @@
             </div>
         </div>
 
-        <!-- TABLA PRINCIPAL -->
         <div class="card">
             <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
                 <h3 style="margin:0">Gestión de Nómina Semanal</h3>
@@ -243,8 +239,7 @@
                         <tr>
                             <th>Trabajador</th>
                             <th>DNI / Identificación</th>
-                            <th>Celular</th> <!-- Nueva Columna -->
-                            <th>Área</th>
+                            <th>Celular</th> <th>Área</th>
                             <th>Sueldo Base</th>
                             <th>Progreso Horas</th>
                             <th>Monto a Pagar</th>
@@ -257,7 +252,6 @@
         </div>
     </div>
 
-    <!-- MODAL TRABAJADOR -->
     <div id="modalTrabajador" class="modal">
         <div class="modal-content">
             <div style="text-align: center; margin-bottom: 1.5rem;">
@@ -302,7 +296,6 @@
         </div>
     </div>
 
-    <!-- MODAL ELIMINAR / DESPEDIR -->
     <div id="modalDespido" class="modal">
         <div class="modal-content" style="text-align: center;">
             <div style="color: var(--danger); font-size: 3rem; margin-bottom: 1rem;"><i class="fa-solid fa-circle-exclamation"></i></div>
@@ -315,7 +308,6 @@
         </div>
     </div>
 
-    <!-- MODAL PAGO -->
     <div id="modalPago" class="modal">
         <div class="modal-content" style="text-align: center;">
             <div style="color: var(--success); font-size: 3rem; margin-bottom: 1rem;"><i class="fa-solid fa-money-bill-transfer"></i></div>
@@ -331,7 +323,6 @@
         </div>
     </div>
 
-    <!-- MODAL SALIR -->
     <div id="modalSalir" class="modal">
         <div class="modal-content" style="text-align: center;">
             <h3>¿Cerrar Sesión?</h3>
@@ -343,7 +334,6 @@
         </div>
     </div>
 
-    <!-- MODAL DINERO -->
     <div id="modalDinero" class="modal">
         <div class="modal-content" style="text-align: center;">
             <h3>Inyectar Capital</h3>
@@ -384,6 +374,13 @@
             render();
         }
 
+        // Listener para actualizar cuando se cambia algo en otra página (asistencia.html)
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'taller_trabajadores') {
+                cargarDesdeLocalStorage();
+            }
+        });
+
         function render() {
             const cuerpo = document.getElementById('tablaCuerpo');
             document.getElementById('countTrabajadores').innerText = trabajadores.length;
@@ -394,16 +391,24 @@
             }
 
             cuerpo.innerHTML = trabajadores.map(t => {
-                let ganado = (t.totalMinutos / 60) * t.sueldoHora;
-                const hrs = Math.floor(t.totalMinutos / 60);
-                const mins = t.totalMinutos % 60;
+                // Validación para asegurar que totalMinutos existe
+                const totalMin = t.totalMinutos || 0;
+                const sueldoBase = t.sueldoBase || 0;
+                
+                // Cálculo: SueldoBase / 48 horas semanales (ajustar si es diferente)
+                // Usamos 48h o 2880 mins como base estándar
+                const sueldoMinuto = sueldoBase / 2880; 
+                let ganado = totalMin * sueldoMinuto;
+
+                const hrs = Math.floor(totalMin / 60);
+                const mins = totalMin % 60;
 
                 return `<tr>
                     <td><div style="font-weight:700; color:var(--primary)">${t.nombre}</div></td>
                     <td><code style="background:#f1f5f9; padding:2px 6px; border-radius:4px;">${t.dni}</code></td>
                     <td>${t.telf || '-'}</td>
                     <td><span style="background:#e0f2fe; color:#0369a1; padding:4px 8px; border-radius:6px; font-size:0.75rem; font-weight:700;">${t.area}</span></td>
-                    <td>S/ ${t.sueldoBase.toFixed(2)}</td>
+                    <td>S/ ${sueldoBase.toFixed(2)}</td>
                     <td><i class="fa-regular fa-clock"></i> ${hrs}h ${mins}m</td>
                     <td><b style="color:var(--success); font-size:1rem;">S/ ${ganado.toFixed(2)}</b></td>
                     <td style="text-align: right;">
@@ -428,12 +433,12 @@
 
             if(id) {
                 const idx = trabajadores.findIndex(x => x.id == id);
-                trabajadores[idx] = { ...trabajadores[idx], nombre, dni, telf, area, sueldoBase, sueldoHora: sueldoBase/62 };
+                trabajadores[idx] = { ...trabajadores[idx], nombre, dni, telf, area, sueldoBase };
             } else {
                 trabajadores.push({
                     id: Date.now(),
                     nombre, dni, telf, area,
-                    sueldoBase, sueldoHora: sueldoBase/62,
+                    sueldoBase,
                     totalMinutos: 0,
                     historial: [] 
                 });
@@ -444,33 +449,30 @@
             showToast("Datos guardados correctamente");
         }
 
-        // REPORTE INDIVIDUAL MEJORADO
         function pdfIndividual(id) {
             const t = trabajadores.find(x => x.id === id);
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             
-            // Header Estilo Corporativo
             doc.setFillColor(15, 23, 42); 
             doc.rect(0, 0, 210, 40, 'F');
             doc.setTextColor(255, 255, 255);
             doc.setFontSize(18);
             doc.text("REPORTE INDIVIDUAL DE TRABAJADOR", 105, 20, {align: 'center'});
             doc.setFontSize(10);
-            doc.text(`TALLER DESASTRE PICÓ BENDEZUN | Fecha: ${new Date().toLocaleDateString()}`, 105, 30, {align: 'center'});
+            doc.text(`TALLER | Fecha: ${new Date().toLocaleDateString()}`, 105, 30, {align: 'center'});
 
             doc.setTextColor(40);
             doc.setFontSize(11);
-            // Información del Trabajador
             doc.text(`NOMBRE: ${t.nombre}`, 20, 50);
             doc.text(`DNI: ${t.dni}`, 20, 57);
             doc.text(`CELULAR: ${t.telf || 'No registrado'}`, 20, 64);
             doc.text(`ÁREA: ${t.area}`, 20, 71);
             
-            // Información Económica
-            const hrsTotales = Math.floor(t.totalMinutos / 60);
-            const minsTotales = t.totalMinutos % 60;
-            const ganadoTotal = (t.totalMinutos / 60) * t.sueldoHora;
+            const totalMin = t.totalMinutos || 0;
+            const hrsTotales = Math.floor(totalMin / 60);
+            const minsTotales = totalMin % 60;
+            const ganadoTotal = totalMin * (t.sueldoBase / 2880);
 
             doc.text(`SUELDO BASE: S/ ${t.sueldoBase.toFixed(2)}`, 140, 50);
             doc.text(`HORAS TOTALES: ${hrsTotales}h ${minsTotales}m`, 140, 57);
@@ -478,30 +480,25 @@
             doc.text(`MONTO A PAGAR: S/ ${ganadoTotal.toFixed(2)}`, 140, 64);
             doc.setFont(undefined, 'normal');
 
-            // Tabla de Historial
             doc.autoTable({
                 startY: 80,
                 head: [['N°', 'Fecha', 'Turno', 'Entrada', 'Salida', 'Horas', 'Monto']],
-                body: t.historial.map((h, i) => [
+                body: (t.historial || []).map((h, i) => [
                     i + 1, 
                     h.fecha, 
                     h.turno || '-', 
                     h.entrada, 
                     h.salida, 
                     `${Math.floor(h.minutos/60)}h ${h.minutos%60}m`, 
-                    `S/ ${((h.minutos/60)*t.sueldoHora).toFixed(2)}`
+                    `S/ ${(h.minutos * (t.sueldoBase / 2880)).toFixed(2)}`
                 ]),
                 theme: 'striped',
                 headStyles: { fillColor: [37, 99, 235] }
             });
 
-            const finalY = doc.lastAutoTable.finalY || 80;
-            doc.setFontSize(14);
-            doc.text(`TOTAL ACUMULADO: S/ ${ganadoTotal.toFixed(2)}`, 190, finalY + 20, {align:'right'});
             doc.save(`Reporte_${t.nombre}.pdf`);
         }
 
-        // REPORTE GENERAL PROFESIONAL
         function generarReporteSemanal() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
@@ -512,16 +509,15 @@
             doc.setFontSize(20);
             doc.text("PLANILLA GENERAL DE PAGOS", 105, 20, { align: 'center' });
             doc.setFontSize(12);
-            doc.text("TALLER DESASTRE PICÓ BENDEZUN", 105, 30, { align: 'center' });
-            doc.text(`Total Personal: ${trabajadores.length} | Administradora: Sandra Bendezu`, 105, 38, { align: 'center' });
+            doc.text("TALLER DE SASTRERIA", 105, 30, { align: 'center' });
 
             const data = trabajadores.map((t, i) => [
                 i + 1, 
                 t.nombre, 
                 t.dni, 
                 t.area, 
-                `${Math.floor(t.totalMinutos/60)}h`,
-                `S/ ${((t.totalMinutos/60)*t.sueldoHora).toFixed(2)}`
+                `${Math.floor((t.totalMinutos || 0)/60)}h`,
+                `S/ ${((t.totalMinutos || 0) * (t.sueldoBase / 2880)).toFixed(2)}`
             ]);
 
             doc.autoTable({ 
@@ -551,7 +547,7 @@
         }
 
         function abrirDespido(id, n) {
-            document.getElementById('txtPreguntaDespido').innerText = `¿Está seguro de despedir a ${n}? Esta acción eliminará su registro permanentemente.`;
+            document.getElementById('txtPreguntaDespido').innerText = `¿Está seguro de despedir a ${n}?`;
             openModal('modalDespido');
             document.getElementById('btnConfDespido').onclick = () => {
                 trabajadores = trabajadores.filter(x => x.id !== id);
