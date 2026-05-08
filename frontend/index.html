@@ -82,19 +82,19 @@
 
         .top-bar { 
             background: var(--white); 
-            padding: 1.25rem 2rem; 
+            padding: 1rem 2rem; 
             border-radius: var(--radius); 
             display: flex; 
             justify-content: space-between; 
             align-items: center; 
             box-shadow: var(--shadow); 
             margin-bottom: 2rem; 
-            border-bottom: 1px solid #e2e8f0;
         }
 
         .admin-profile { display: flex; align-items: center; gap: 12px; }
-        .admin-info h4 { margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--primary); letter-spacing: -0.025em; text-transform: uppercase; }
-        .admin-info small { color: var(--secondary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.7rem; display: block; margin-bottom: 2px; }
+        .admin-photo { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid var(--bg); }
+        .admin-info h4 { margin: 0; font-size: 0.95rem; }
+        .admin-info small { color: var(--secondary); }
 
         /* DASHBOARD CARDS */
         .dashboard-grid {
@@ -169,6 +169,7 @@
             .sidebar.active { transform: translateX(0); }
             .content { margin-left: 0; width: 100%; }
             .top-bar { flex-direction: column; gap: 1rem; text-align: center; }
+            .nav-toggle { display: block; }
         }
 
         @media (max-width: 640px) {
@@ -190,36 +191,27 @@
 
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <i class="fa-solid fa-scissors"></i> TALLER DE SASTRERIA P & B
+            <i class="fa-solid fa-scissors"></i> TALLER DE SASTRERIA
         </div>
         <div class="nav-item active" onclick="window.location.href='index.html'"><i class="fa-solid fa-chart-pie"></i> Dashboard</div>
         <div class="nav-item" onclick="window.location.href='asistencia.html'"><i class="fa-solid fa-calendar-check"></i> Asistencia</div>
     </div>
 
-    <div class="content">
-        <!-- TOP BAR MEJORADA -->
         <div class="top-bar">
             <div class="admin-profile">
+                <!-- AQUÍ CAMBIAS EL SRC POR TU NUEVA IMAGEN -->
+                <img src="URL_DE_TU_NUEVA_IMAGEN_AQUI" class="admin-photo" id="header-avatar">
                 <div class="admin-info">
-                    <small>Bienvenida de nuevo,</small>
-                    <h4 id="header-name">SANDRA BENDEZU</h4>
-                    <span style="font-size: 0.75rem; color: var(--success); font-weight: 500;">
-                        <i class="fa-solid fa-circle-check"></i> Administradora Principal
-                    </span>
+                    <h4 id="header-name">Sandra Bendezu</h4>
+                    <small><i class="fa-solid fa-circle-check" style="color:var(--success)"></i> Administradora Principal</small>
                 </div>
             </div>
-
-            <div style="display:flex; gap:16px; flex-wrap: wrap; align-items: center;">
-                <button class="btn btn-success" onclick="abrirModalTrabajador()" 
-                        style="box-shadow: 0 4px 10px rgba(5, 150, 105, 0.2); border: 1px solid rgba(255,255,255,0.1); padding: 12px 20px;">
-                    <i class="fa-solid fa-user-plus" style="font-size: 0.9rem;"></i> 
-                    <span style="letter-spacing: 0.3px;">Nuevo Personal</span>
+            <div style="display:flex; gap:12px; flex-wrap: wrap;">
+                <button class="btn btn-success" onclick="abrirModalTrabajador()">
+                    <i class="fa-solid fa-plus"></i> Nuevo Personal
                 </button>
-
-                <button class="btn btn-primary" onclick="generarReporteSemanal()" 
-                        style="box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2); border: 1px solid rgba(255,255,255,0.1); padding: 12px 20px;">
-                    <i class="fa-solid fa-file-invoice-dollar" style="font-size: 0.9rem;"></i> 
-                    <span style="letter-spacing: 0.3px;">Reporte General</span>
+                <button class="btn btn-primary" onclick="generarReporteSemanal()">
+                    <i class="fa-solid fa-file-export"></i> Reporte General
                 </button>
             </div>
         </div>
@@ -262,7 +254,6 @@
         </div>
     </div>
 
-    <!-- MODALES (Sin cambios en funcionalidad) -->
     <div id="modalTrabajador" class="modal">
         <div class="modal-content">
             <div style="text-align: center; margin-bottom: 1.5rem;">
@@ -271,6 +262,7 @@
                 </div>
                 <h2 id="tituloModalTrabajador" style="margin:0">Registro de Personal</h2>
             </div>
+            
             <input type="hidden" id="editId">
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem; margin-bottom:1rem;">
                 <div class="input-group">
@@ -298,6 +290,7 @@
                 <label style="font-size:0.8rem; font-weight:600; color:var(--secondary);">SUELDO SEMANAL (S/)</label>
                 <input type="number" id="tSueldoBase" placeholder="Ej: 400" style="width:100%; padding:12px; border:1px solid #e2e8f0; border-radius:8px;">
             </div>
+
             <div style="display:flex; gap:10px;">
                 <button class="btn btn-primary" style="flex:2; justify-content: center;" onclick="guardarTrabajador()">Guardar Cambios</button>
                 <button class="btn btn-outline" style="flex:1; justify-content: center;" onclick="closeModal('modalTrabajador')">Cancelar</button>
@@ -361,8 +354,8 @@
             const sessionData = localStorage.getItem('taller_admin');
             if(sessionData) {
                 const admin = JSON.parse(sessionData);
-                // Mantenemos el saludo personalizado pero permitimos que el nombre cargue de la sesión en mayúsculas
-                document.getElementById('header-name').innerText = admin.nombre.toUpperCase();
+                document.getElementById('header-name').innerText = admin.nombre;
+                if(admin.foto && admin.foto !== "null") document.getElementById('header-avatar').src = admin.foto;
             }
             const tGuardados = localStorage.getItem('taller_trabajadores');
             const pGuardado = localStorage.getItem('taller_presupuesto');
@@ -372,6 +365,7 @@
             render();
         }
 
+        // Detecta cambios desde la página de asistencia
         window.addEventListener('storage', (e) => {
             if (e.key === 'taller_trabajadores') {
                 cargarDesdeLocalStorage();
@@ -389,9 +383,16 @@
 
             cuerpo.innerHTML = trabajadores.map(t => {
                 const sueldoBase = t.sueldoBase || 0;
+                
+                // LÓGICA SOLICITADA: Pago por hora = Sueldo / 62
                 const pagoPorHora = sueldoBase / 62;
+                
                 const horasAcum = t.horasAcumuladas || 0;
+                
+                // LÓGICA SOLICITADA: Monto a pagar = (Sueldo / 62) * Horas Trabajadas
                 const montoPagar = pagoPorHora * horasAcum;
+                
+                // Actualizar el objeto en memoria por si se necesita para el PDF
                 t.montoAPagar = montoPagar;
 
                 const hrs = Math.floor(horasAcum);
@@ -446,68 +447,100 @@
         }
 
         function pdfIndividual(id) {
-            const t = trabajadores.find(x => x.id === id);
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            
-            const pagoHora = t.sueldoBase / 62;
-            const hrsAcum = t.horasAcumuladas || 0;
-            const hrsTotales = Math.floor(hrsAcum);
-            const minsTotales = Math.round((hrsAcum - hrsTotales) * 60);
-            const ganadoTotal = t.montoAPagar || 0;
+        const t = trabajadores.find(x => x.id === id);
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        const pagoHora = t.sueldoBase / 62;
+        const hrsAcum = t.horasAcumuladas || 0;
+        const hrsTotales = Math.floor(hrsAcum);
+        const minsTotales = Math.round((hrsAcum - hrsTotales) * 60);
+        const ganadoTotal = t.montoAPagar || 0;
 
-            doc.setFillColor(15, 23, 42); 
-            doc.rect(0, 0, 210, 40, 'F');
-            doc.setTextColor(255, 255, 255);
-            doc.setFontSize(18);
-            doc.text("REPORTE INDIVIDUAL DE TRABAJADOR", 105, 20, {align: 'center'});
-            doc.text(`TALLER | Fecha: ${new Date().toLocaleDateString()}`, 105, 30, {align: 'center'});
+        doc.setFillColor(15, 23, 42); 
+        doc.rect(0, 0, 210, 40, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(18);
+        doc.text("REPORTE INDIVIDUAL DE TRABAJADOR", 105, 20, {align: 'center'});
+        doc.setFontSize(10);
+        doc.text(`TALLER | Fecha: ${new Date().toLocaleDateString()}`, 105, 30, {align: 'center'});
 
-            doc.setTextColor(40);
-            doc.text(`NOMBRE: ${t.nombre}`, 20, 50);
-            doc.text(`DNI: ${t.dni}`, 20, 57);
-            doc.text(`ÁREA: ${t.area}`, 20, 64);
-            doc.text(`MONTO A PAGAR: S/ ${ganadoTotal.toFixed(2)}`, 140, 50);
+        doc.setTextColor(40);
+        doc.setFontSize(11);
+        doc.text(`NOMBRE: ${t.nombre}`, 20, 50);
+        doc.text(`DNI: ${t.dni}`, 20, 57);
+        doc.text(`CELULAR: ${t.telf || 'No registrado'}`, 20, 64);
+        doc.text(`ÁREA: ${t.area}`, 20, 71);
+        
+        doc.text(`SUELDO BASE: S/ ${t.sueldoBase.toFixed(2)}`, 140, 50);
+        doc.text(`PAGO POR HORA: S/ ${pagoHora.toFixed(2)}`, 140, 57);
+        doc.text(`HORAS TOTALES: ${hrsTotales}h ${minsTotales}m`, 140, 64);
+        doc.setFont(undefined, 'bold');
+        doc.text(`MONTO A PAGAR: S/ ${ganadoTotal.toFixed(2)}`, 140, 71);
+        doc.setFont(undefined, 'normal');
 
-            doc.autoTable({
-                startY: 85,
-                head: [['N°', 'Fecha', 'Entrada', 'Salida', 'Horas', 'Monto']],
-                body: (t.historial || []).map((h, i) => [
-                    i + 1, h.fecha, h.entrada, h.salida, 
+        doc.autoTable({
+            startY: 85,
+            head: [['N°', 'Fecha', 'Entrada', 'Salida', 'Horas', 'Monto']],
+            body: (t.historial || []).map((h, i) => {
+                // Calculamos las horas de este registro específico (minutos / 60)
+                const horasDeEsteRegistro = h.minutos / 60;
+                const montoDeEsteRegistro = horasDeEsteRegistro * pagoHora;
+                
+                return [
+                    i + 1, 
+                    h.fecha, 
+                    h.entrada, 
+                    h.salida, 
                     `${Math.floor(h.minutos/60)}h ${h.minutos%60}m`, 
-                    `S/ ${(h.minutos/60 * pagoHora).toFixed(2)}`
-                ]),
-                theme: 'striped',
-                headStyles: { fillColor: [37, 99, 235] }
-            });
-            doc.save(`Reporte_${t.nombre}.pdf`);
-        }
+                    `S/ ${montoDeEsteRegistro.toFixed(2)}`
+                ];
+            }),
+            theme: 'striped',
+            headStyles: { fillColor: [37, 99, 235] }
+        });
+
+        doc.save(`Reporte_${t.nombre}.pdf`);
+    }
 
         function generarReporteSemanal() {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            doc.setFillColor(37, 99, 235);
-            doc.rect(0, 0, 210, 45, 'F');
-            doc.setTextColor(255, 255, 255);
-            doc.setFontSize(20);
-            doc.text("PLANILLA GENERAL DE PAGOS", 105, 20, { align: 'center' });
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        doc.setFillColor(37, 99, 235);
+        doc.rect(0, 0, 210, 45, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(20);
+        doc.text("PLANILLA GENERAL DE PAGOS", 105, 20, { align: 'center' });
+        doc.setFontSize(12);
+        doc.text("TALLER DE SASTRERIA", 105, 30, { align: 'center' });
 
-            const data = trabajadores.map((t, i) => [
-                i + 1, t.nombre, t.dni, t.area, 
+        const data = trabajadores.map((t, i) => {
+            const hrsAcum = t.horasAcumuladas || 0;
+            const hrs = Math.floor(hrsAcum);
+            const mins = Math.round((hrsAcum - hrs) * 60);
+            
+            return [
+                i + 1, 
+                t.nombre, 
+                t.dni, 
+                t.area, 
                 `S/ ${(t.sueldoBase / 62).toFixed(2)}`,
-                `${Math.floor(t.horasAcumuladas)}h ${Math.round((t.horasAcumuladas % 1) * 60)}m`,
+                `${hrs}h ${mins}m`, // Formato corregido aquí
                 `S/ ${(t.montoAPagar || 0).toFixed(2)}`
-            ]);
+            ];
+        });
 
-            doc.autoTable({ 
-                startY: 55, 
-                head: [['ID', 'Nombre', 'DNI', 'Área', 'P/H', 'Hrs.', 'Total']], 
-                body: data,
-                headStyles: { fillColor: [15, 23, 42] }
-            });
-            doc.save("Planilla_General.pdf");
-        }
-
+        doc.autoTable({ 
+            startY: 55, 
+            head: [['ID', 'Nombre Completo', 'DNI', 'Área', 'P/H', 'Hrs.', 'Total a Pagar']], 
+            body: data,
+            styles: { fontSize: 8, cellPadding: 3 },
+            headStyles: { fillColor: [15, 23, 42] }
+        });
+        
+        doc.save("Planilla_General_Taller.pdf");
+    }
         function abrirPago(id, n, m) {
             document.getElementById('txtPagoSub').innerText = `Se liquidará un total de S/ ${m.toFixed(2)} a favor de ${n}.`;
             openModal('modalPago');
