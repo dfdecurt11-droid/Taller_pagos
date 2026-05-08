@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const pool = require('./db');
 const axios = require('axios');
-const path = require('path'); // Necesario para las rutas de archivos
+const path = require('path');
 
 const app = express();
 
@@ -13,7 +13,6 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' })); 
 
 // Servir archivos estáticos del frontend
-// Esto permite que al abrir la URL de Render se vea tu index.html
 app.use(express.static(path.join(__dirname, '../frontend')));
 
 // Tu Token de APIperu.dev
@@ -98,7 +97,7 @@ app.post('/api/login', async (req, res) => {
 });
 
 // =====================================================
-// 4. PERSONAL Y ASISTENCIA (Rutas resumidas)
+// 4. PERSONAL Y ASISTENCIA
 // =====================================================
 app.post('/api/personal', async (req, res) => {
     const { dni, nombres, telefono, id_cargo, pago_semanal, area } = req.body;
@@ -151,11 +150,17 @@ app.get('/api/asistencia', async (req, res) => {
 });
 
 // =====================================================
-// RUTA FINAL PARA EL FRONTEND
+// RUTA FINAL PARA EL FRONTEND (CORREGIDA PARA NODE v24)
 // =====================================================
-// Esto hace que si escribes una ruta que no existe, te mande al index.html
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/index.html'));
+
+// Primero definimos que la raíz "/" cargue el login explícitamente
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/login.html'));
+});
+
+// Luego, cualquier otra ruta no definida mandará al login (evita el error de PathError)
+app.get('(.*)', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/login.html'));
 });
 
 // Iniciar Servidor con puerto dinámico
