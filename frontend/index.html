@@ -239,8 +239,10 @@
                         <tr>
                             <th>Trabajador</th>
                             <th>DNI / Identificación</th>
-                            <th>Celular</th> <th>Área</th>
+                            <th>Celular</th> 
+                            <th>Área</th>
                             <th>Sueldo Base</th>
+                            <th>Pago/Hora</th>
                             <th>Progreso Horas</th>
                             <th>Monto a Pagar</th>
                             <th style="text-align: right;">Acciones</th>
@@ -323,17 +325,6 @@
         </div>
     </div>
 
-    <div id="modalSalir" class="modal">
-        <div class="modal-content" style="text-align: center;">
-            <h3>¿Cerrar Sesión?</h3>
-            <p>Se guardarán todos los cambios antes de salir.</p>
-            <div style="display:flex; gap:10px; margin-top:1.5rem;">
-                <button class="btn btn-danger" style="flex:1; justify-content: center;" onclick="window.location.href='login.html'">Salir</button>
-                <button class="btn btn-outline" style="flex:1; justify-content: center;" onclick="closeModal('modalSalir')">Volver</button>
-            </div>
-        </div>
-    </div>
-
     <div id="modalDinero" class="modal">
         <div class="modal-content" style="text-align: center;">
             <h3>Inyectar Capital</h3>
@@ -374,7 +365,7 @@
             render();
         }
 
-        // Listener para actualizar cuando se cambia algo en otra página (asistencia.html)
+        // Detecta cambios desde la página de asistencia
         window.addEventListener('storage', (e) => {
             if (e.key === 'taller_trabajadores') {
                 cargarDesdeLocalStorage();
@@ -386,22 +377,26 @@
             document.getElementById('countTrabajadores').innerText = trabajadores.length;
 
             if (trabajadores.length === 0) {
-                cuerpo.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:50px; color:var(--secondary);">No hay personal en la lista. Pulse "Nuevo Personal" para empezar.</td></tr>`;
+                cuerpo.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:50px; color:var(--secondary);">No hay personal en la lista. Pulse "Nuevo Personal" para empezar.</td></tr>`;
                 return;
             }
 
             cuerpo.innerHTML = trabajadores.map(t => {
-                // Validación para asegurar que totalMinutos existe
-                const totalMin = t.totalMinutos || 0;
                 const sueldoBase = t.sueldoBase || 0;
                 
-                // Cálculo: SueldoBase / 48 horas semanales (ajustar si es diferente)
-                // Usamos 48h o 2880 mins como base estándar
-                const sueldoMinuto = sueldoBase / 2880; 
-                let ganado = totalMin * sueldoMinuto;
+                // LÓGICA SOLICITADA: Pago por hora = Sueldo / 62
+                const pagoPorHora = sueldoBase / 62;
+                
+                const horasAcum = t.horasAcumuladas || 0;
+                
+                // LÓGICA SOLICITADA: Monto a pagar = (Sueldo / 62) * Horas Trabajadas
+                const montoPagar = pagoPorHora * horasAcum;
+                
+                // Actualizar el objeto en memoria por si se necesita para el PDF
+                t.montoAPagar = montoPagar;
 
-                const hrs = Math.floor(totalMin / 60);
-                const mins = totalMin % 60;
+                const hrs = Math.floor(horasAcum);
+                const mins = Math.round((horasAcum - hrs) * 60);
 
                 return `<tr>
                     <td><div style="font-weight:700; color:var(--primary)">${t.nombre}</div></td>
@@ -409,10 +404,11 @@
                     <td>${t.telf || '-'}</td>
                     <td><span style="background:#e0f2fe; color:#0369a1; padding:4px 8px; border-radius:6px; font-size:0.75rem; font-weight:700;">${t.area}</span></td>
                     <td>S/ ${sueldoBase.toFixed(2)}</td>
+                    <td style="color:var(--secondary)">S/ ${pagoPorHora.toFixed(2)}</td>
                     <td><i class="fa-regular fa-clock"></i> ${hrs}h ${mins}m</td>
-                    <td><b style="color:var(--success); font-size:1rem;">S/ ${ganado.toFixed(2)}</b></td>
+                    <td><b style="color:var(--success); font-size:1rem;">S/ ${montoPagar.toFixed(2)}</b></td>
                     <td style="text-align: right;">
-                        <button class="btn btn-outline btn-icon" title="Pagar" onclick="abrirPago(${t.id}, '${t.nombre}', ${ganado})"><i class="fa-solid fa-hand-holding-dollar" style="color:var(--success)"></i></button>
+                        <button class="btn btn-outline btn-icon" title="Pagar" onclick="abrirPago(${t.id}, '${t.nombre}', ${montoPagar})"><i class="fa-solid fa-hand-holding-dollar" style="color:var(--success)"></i></button>
                         <button class="btn btn-outline btn-icon" title="Editar" onclick="editarPersonal(${t.id})"><i class="fa-solid fa-user-pen" style="color:var(--accent)"></i></button>
                         <button class="btn btn-outline btn-icon" title="PDF" onclick="pdfIndividual(${t.id})"><i class="fa-solid fa-file-pdf"></i></button>
                         <button class="btn btn-outline btn-icon" title="Eliminar" onclick="abrirDespido(${t.id}, '${t.nombre}')"><i class="fa-solid fa-trash-can" style="color:var(--danger)"></i></button>
@@ -439,7 +435,8 @@
                     id: Date.now(),
                     nombre, dni, telf, area,
                     sueldoBase,
-                    totalMinutos: 0,
+                    horasAcumuladas: 0,
+                    montoAPagar: 0,
                     historial: [] 
                 });
             }
@@ -454,6 +451,8 @@
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             
+            const pagoHora = t.sueldoBase / 62;
+
             doc.setFillColor(15, 23, 42); 
             doc.rect(0, 0, 210, 40, 'F');
             doc.setTextColor(255, 255, 255);
@@ -469,28 +468,28 @@
             doc.text(`CELULAR: ${t.telf || 'No registrado'}`, 20, 64);
             doc.text(`ÁREA: ${t.area}`, 20, 71);
             
-            const totalMin = t.totalMinutos || 0;
-            const hrsTotales = Math.floor(totalMin / 60);
-            const minsTotales = totalMin % 60;
-            const ganadoTotal = totalMin * (t.sueldoBase / 2880);
+            const hrsAcum = t.horasAcumuladas || 0;
+            const hrsTotales = Math.floor(hrsAcum);
+            const minsTotales = Math.round((hrsAcum - hrsTotales) * 60);
+            const ganadoTotal = t.montoAPagar || 0;
 
             doc.text(`SUELDO BASE: S/ ${t.sueldoBase.toFixed(2)}`, 140, 50);
-            doc.text(`HORAS TOTALES: ${hrsTotales}h ${minsTotales}m`, 140, 57);
+            doc.text(`PAGO POR HORA: S/ ${pagoHora.toFixed(2)}`, 140, 57);
+            doc.text(`HORAS TOTALES: ${hrsTotales}h ${minsTotales}m`, 140, 64);
             doc.setFont(undefined, 'bold');
-            doc.text(`MONTO A PAGAR: S/ ${ganadoTotal.toFixed(2)}`, 140, 64);
+            doc.text(`MONTO A PAGAR: S/ ${ganadoTotal.toFixed(2)}`, 140, 71);
             doc.setFont(undefined, 'normal');
 
             doc.autoTable({
-                startY: 80,
-                head: [['N°', 'Fecha', 'Turno', 'Entrada', 'Salida', 'Horas', 'Monto']],
+                startY: 85,
+                head: [['N°', 'Fecha', 'Entrada', 'Salida', 'Horas', 'Monto']],
                 body: (t.historial || []).map((h, i) => [
                     i + 1, 
                     h.fecha, 
-                    h.turno || '-', 
                     h.entrada, 
                     h.salida, 
                     `${Math.floor(h.minutos/60)}h ${h.minutos%60}m`, 
-                    `S/ ${(h.minutos * (t.sueldoBase / 2880)).toFixed(2)}`
+                    `S/ ${(h.monto || (h.minutos/60 * pagoHora)).toFixed(2)}`
                 ]),
                 theme: 'striped',
                 headStyles: { fillColor: [37, 99, 235] }
@@ -516,15 +515,16 @@
                 t.nombre, 
                 t.dni, 
                 t.area, 
-                `${Math.floor((t.totalMinutos || 0)/60)}h`,
-                `S/ ${((t.totalMinutos || 0) * (t.sueldoBase / 2880)).toFixed(2)}`
+                `S/ ${(t.sueldoBase / 62).toFixed(2)}`,
+                `${Math.floor(t.horasAcumuladas || 0)}h`,
+                `S/ ${(t.montoAPagar || 0).toFixed(2)}`
             ]);
 
             doc.autoTable({ 
                 startY: 55, 
-                head: [['ID', 'Nombre Completo', 'DNI', 'Área', 'Hrs.', 'Total a Pagar']], 
+                head: [['ID', 'Nombre Completo', 'DNI', 'Área', 'P/H', 'Hrs.', 'Total a Pagar']], 
                 body: data,
-                styles: { fontSize: 9, cellPadding: 5 },
+                styles: { fontSize: 8, cellPadding: 3 },
                 headStyles: { fillColor: [15, 23, 42] }
             });
             
@@ -538,7 +538,7 @@
                 if(presupuesto >= m) {
                     presupuesto -= m;
                     const t = trabajadores.find(x => x.id === id);
-                    t.totalMinutos = 0; t.historial = []; 
+                    t.horasAcumuladas = 0; t.montoAPagar = 0; t.historial = []; 
                     guardarEnLocalStorage();
                     closeModal('modalPago'); render();
                     showToast(`Pago de S/ ${m.toFixed(2)} procesado`);

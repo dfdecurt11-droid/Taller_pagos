@@ -197,6 +197,12 @@
                 <i class="fa-solid fa-calendar-check"></i> <span>Asistencia</span>
             </div>
         </nav>
+
+        <div class="logout-container">
+            <button class="btn-logout" onclick="cerrarSesion()">
+                <i class="fa-solid fa-right-from-bracket"></i> <span>Cerrar Sesión</span>
+            </button>
+        </div>
     </div>
 
     <div class="content">
@@ -261,7 +267,6 @@
         }
 
         function realizarMarcado(id, tipo) {
-            // Ignoramos segundos: seteamos a 0 para el cálculo preciso de minutos
             const ahora = new Date();
             ahora.setSeconds(0, 0); 
             
@@ -280,20 +285,24 @@
                 
                 trabajadores[idx].horaSalidaTemp = ahora.toISOString();
                 
-                // CÁLCULO DE PAGO
                 const entrada = new Date(trabajadores[idx].horaEntradaTemp);
                 const salida = ahora;
                 
-                // Diferencia en milisegundos, luego a horas totales
                 const diffMs = salida - entrada;
                 const horasTrabajadas = diffMs / (1000 * 60 * 60); 
                 
-                // Pago = Horas * (300/62)
                 const pagoDelTurno = horasTrabajadas * COSTO_HORA;
                 
-                // Acumulamos el pago (inicializar si no existe)
                 trabajadores[idx].montoAPagar = (trabajadores[idx].montoAPagar || 0) + pagoDelTurno;
                 trabajadores[idx].horasAcumuladas = (trabajadores[idx].horasAcumuladas || 0) + horasTrabajadas;
+
+                if(!trabajadores[idx].historial) trabajadores[idx].historial = [];
+                trabajadores[idx].historial.push({
+                    fecha: ahora.toLocaleDateString(),
+                    entrada: entrada.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    salida: ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    minutos: Math.round(horasTrabajadas * 60)
+                });
 
                 showToast(`🚀 Salida: ${trabajadores[idx].nombre}. Pago calculado.`);
             }
@@ -308,16 +317,18 @@
 
             cuerpo.innerHTML = lista.map(t => {
                 const pagoHoy = t.montoAPagar ? t.montoAPagar.toFixed(2) : "0.00";
+                const enTurno = t.horaEntradaTemp && !t.horaSalidaTemp;
+
                 return `
-                <tr>
+                <tr style="${enTurno ? 'background: #f8fafc' : ''}">
                     <td><b>${t.nombre}</b></td>
                     <td><span style="background:#f1f5f9; padding:4px 8px; border-radius:6px; font-size:0.8rem;">${t.area || 'Taller'}</span></td>
                     <td>${formatFechaHora(t.horaEntradaTemp)}</td>
                     <td>${formatFechaHora(t.horaSalidaTemp)}</td>
                     <td><span style="color:#10b981; font-weight:700;">S/ ${pagoHoy}</span></td>
                     <td style="text-align:right">
-                        <button class="btn-marc btn-in" onclick="realizarMarcado(${t.id}, 'entrada')">Entrada</button>
-                        <button class="btn-marc btn-out" onclick="realizarMarcado(${t.id}, 'salida')">Salida</button>
+                        <button class="btn-marc btn-in" onclick="realizarMarcado(${t.id}, 'entrada')" ${enTurno ? 'disabled style="opacity:0.5; cursor:not-allowed"' : ''}>Entrada</button>
+                        <button class="btn-marc btn-out" onclick="realizarMarcado(${t.id}, 'salida')" ${!enTurno ? 'disabled style="opacity:0.5; cursor:not-allowed"' : ''}>Salida</button>
                     </td>
                 </tr>
                 `;
@@ -331,6 +342,12 @@
             t.innerHTML = msj;
             t.style.display = 'block';
             setTimeout(() => { t.style.display = 'none'; }, 3000);
+        }
+
+        function cerrarSesion() {
+            if(confirm("¿Está seguro que desea cerrar sesión?")) {
+                window.location.href = 'login.html';
+            }
         }
 
         document.addEventListener('DOMContentLoaded', () => {
