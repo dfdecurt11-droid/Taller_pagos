@@ -201,7 +201,8 @@
         <!-- BARRA SUPERIOR -->
         <div class="top-bar">
             <div class="admin-profile">
-                <img src="https://i.imgur.com/8Km9tLL.png" class="admin-photo" id="header-avatar">
+                <!-- FOTO ACTUALIZADA AQUÍ -->
+                <img src="https://media-lim1-1.cdn.whatsapp.net/v/t61.24694-24/370365655_326450593123200_8969696400044884436_n.jpg?ccb=11-4&oh=01_Q5Aa4gE6dV_rHn2ytNouuvcq2_n9QiMuSqPyGnHJg_MYsYu5XQ&oe=6A0AC1B6&_nc_sid=5e03e0&_nc_cat=106" class="admin-photo" id="header-avatar">
                 <div class="admin-info">
                     <h4 id="header-name">Sandra Bendezu</h4>
                     <small><i class="fa-solid fa-circle-check" style="color:var(--success)"></i> Administradora Principal</small>
@@ -373,6 +374,8 @@
             if(sessionData) {
                 const admin = JSON.parse(sessionData);
                 document.getElementById('header-name').innerText = admin.nombre;
+                // Nota: El código JS podría sobrescribir la foto si hay algo en LocalStorage. 
+                // Si quieres que la foto del HTML sea permanente, puedes comentar la línea de abajo.
                 if(admin.foto && admin.foto !== "null") document.getElementById('header-avatar').src = admin.foto;
             }
             const tGuardados = localStorage.getItem('taller_trabajadores');
