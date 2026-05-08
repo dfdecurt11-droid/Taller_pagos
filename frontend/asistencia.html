@@ -9,14 +9,12 @@
     
     <style>
         :root {
-            --primary-dark: #0b1120;
-            --nav-active: #1e293b;
+            --primary-dark: #0b1120; /* Fondo Sidebar ultra oscuro (Igual a imagen) */
+            --nav-active: #1e293b;   /* Color del item activo */
             --accent: #3b82f6;      
-            --danger-btn: #dc2626;
+            --danger-btn: #dc2626;   /* Rojo sólido botón salir */
             --bg-main: #f1f5f9;     
             --white: #ffffff;
-            --text-muted: #64748b;
-            --success: #10b981;
         }
 
         * { box-sizing: border-box; font-family: 'Inter', sans-serif; }
@@ -28,7 +26,7 @@
             min-height: 100vh;
         }
         
-        /* --- SIDEBAR --- */
+        /* --- SIDEBAR IDENTICO AL INDEX --- */
         .sidebar { 
             width: 260px; 
             background: var(--primary-dark); 
@@ -66,11 +64,46 @@
             transition: all 0.2s ease;
         }
 
-        .nav-item.active { background: var(--nav-active); color: white; }
-        .nav-item:hover:not(.active) { background: rgba(255,255,255,0.05); }
-        .nav-item i { margin-right: 12px; font-size: 1.1rem; width: 24px; text-align: center; }
+        /* Item activo (Dashboard/Asistencia) */
+        .nav-item.active { 
+            background: var(--nav-active); 
+            color: white; 
+        }
 
-        /* --- CONTENIDO --- */
+        .nav-item:hover:not(.active) { background: rgba(255,255,255,0.05); }
+
+        .nav-item i { 
+            margin-right: 12px; 
+            font-size: 1.1rem; 
+            width: 24px; 
+            text-align: center;
+        }
+
+        /* Botón Salir (Fondo Rojo como la imagen) */
+        .logout-container { padding: 1.5rem; }
+        
+        .btn-logout {
+            width: 100%;
+            background: var(--danger-btn);
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: opacity 0.2s;
+        }
+
+        .btn-logout:hover { opacity: 0.9; }
+
+        /* --- CONTENIDO PRINCIPAL --- */
         .content { 
             margin-left: 260px; 
             width: calc(100% - 260px); 
@@ -118,35 +151,27 @@
         }
         .search-container i { position: absolute; left: 18px; top: 17px; color: #94a3b8; }
 
-        /* TABLA PROFESIONAL */
+        /* TABLA */
         .table-wrapper { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; min-width: 900px; }
+        table { width: 100%; border-collapse: collapse; min-width: 800px; }
         th { 
             text-align: left; padding: 16px; 
-            color: var(--text-muted); font-size: 0.75rem; 
+            color: #64748b; font-size: 0.75rem; 
             text-transform: uppercase; letter-spacing: 1px;
             border-bottom: 2px solid #f1f5f9;
         }
         td { padding: 18px 16px; border-bottom: 1px solid #f1f5f9; font-size: 0.95rem; }
 
-        .price-tag {
-            color: var(--success);
-            font-weight: 600;
-            background: #ecfdf5;
-            padding: 4px 10px;
-            border-radius: 8px;
-        }
-
-        /* BOTONES */
+        /* BOTONES ACCIÓN */
         .btn-marc {
             padding: 10px 18px; border-radius: 10px; border: none; cursor: pointer;
             font-weight: 700; display: inline-flex; align-items: center; gap: 8px;
             transition: 0.2s; font-size: 0.85rem;
         }
-        .btn-in { background: var(--success); color: white; }
+        .btn-in { background: #10b981; color: white; }
         .btn-out { background: #6366f1; color: white; }
-        .btn-marc:hover { transform: translateY(-1px); filter: brightness(1.1); }
 
+        /* TOAST */
         .toast { 
             position: fixed; bottom: 30px; right: 30px; 
             background: #1e293b; color: white; 
@@ -158,8 +183,9 @@
 
         @media (max-width: 1024px) {
             .sidebar { width: 80px; }
-            .sidebar-header span, .nav-item span { display: none; }
+            .sidebar-header span, .nav-item span, .btn-logout span { display: none; }
             .content { margin-left: 80px; width: calc(100% - 80px); }
+            .sidebar-header { justify-content: center; padding: 1.5rem 0; }
         }
     </style>
 </head>
@@ -167,7 +193,7 @@
 
     <div class="sidebar">
         <div class="sidebar-header">
-            <i class="fa-solid fa-scissors"></i> <span>TALLER DE SASTRERÍA</span>
+            <i class="fa-solid fa-scissors"></i> <span>TALLER DE SASTRERIA</span>
         </div>
         
         <nav class="nav-list">
@@ -177,7 +203,6 @@
             <div class="nav-item active" onclick="window.location.href='asistencia.html'">
                 <i class="fa-solid fa-calendar-check"></i> <span>Asistencia</span>
             </div>
-        </nav>
     </div>
 
     <div class="content">
@@ -185,14 +210,14 @@
             <div class="top-header">
                 <div>
                     <h2 style="margin:0; font-size: 1.8rem; letter-spacing: -1px;">Control de Asistencia</h2>
-                    <p style="color: var(--text-muted); margin: 5px 0 0;">Gestión de personal y marcaciones en tiempo real</p>
+                    <p style="color: #64748b; margin: 5px 0 0;">Registre marcaciones de entrada y salida</p>
                 </div>
                 <div id="reloj-digital" class="clock-box">00:00:00</div>
             </div>
 
             <div class="search-container">
                 <i class="fa-solid fa-magnifying-glass"></i>
-                <input type="text" id="busquedaNombre" placeholder="Buscar por nombre de trabajador..." onkeyup="filtrarTrabajadores()">
+                <input type="text" id="busquedaNombre" placeholder="Buscar personal..." onkeyup="filtrarTrabajadores()">
             </div>
 
             <div class="table-wrapper">
@@ -201,10 +226,9 @@
                         <tr>
                             <th>Trabajador</th>
                             <th>Área</th>
-                            <th>Pago / Hora</th>
                             <th>Última Entrada</th>
                             <th>Última Salida</th>
-                            <th style="text-align:right">Acción</th>
+                            <th style="text-align:right">Marcación</th>
                         </tr>
                     </thead>
                     <tbody id="tablaAsistencia"></tbody>
@@ -218,31 +242,23 @@
     <script>
         let trabajadores = [];
 
-        // Inicialización y Reloj
-        const actualizarReloj = () => {
+        function actualizarReloj() {
             const ahora = new Date();
-            document.getElementById('reloj-digital').innerText = ahora.toLocaleTimeString('es-PE', { 
+            document.getElementById('reloj-digital').innerText = ahora.toLocaleTimeString('en-US', { 
                 hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true 
             });
-        };
+        }
+        setInterval(actualizarReloj, 1000);
 
-        // Formateadores Profesionales
-        const formatCurrency = (amount) => {
-            return new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' }).format(amount || 0);
-        };
-
-        const formatFechaHora = (isoStr) => {
-            if (!isoStr) return `<span style="color:#cbd5e1">Sin registro</span>`;
+        function formatFechaHora(isoStr) {
+            if (!isoStr) return '<span style="color:#cbd5e1">Sin registro</span>';
             const d = new Date(isoStr);
-            return `<b>${d.toLocaleDateString('es-PE')}</b> <br> <small style="color:var(--text-muted)">${d.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit', hour12:true})}</small>`;
-        };
+            return `<b>${d.toLocaleDateString('es-PE')}</b> <small>|</small> ${d.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit', hour12:true})}`;
+        }
 
-        // Lógica de Datos
         function cargarDatos() {
             const datos = localStorage.getItem('taller_trabajadores');
-            if (datos) {
-                trabajadores = JSON.parse(datos);
-            }
+            if (datos) trabajadores = JSON.parse(datos);
             renderTable();
         }
 
@@ -254,63 +270,47 @@
             if (tipo === 'entrada') {
                 trabajadores[idx].horaEntradaTemp = ahora.toISOString();
                 trabajadores[idx].horaSalidaTemp = null;
-                showToast(`✅ Entrada registrada: ${trabajadores[idx].nombre}`);
+                showToast(`✅ Entrada: ${trabajadores[idx].nombre}`);
             } else {
-                if(!trabajadores[idx].horaEntradaTemp) {
-                    alert("Error: El trabajador debe marcar entrada antes de la salida.");
-                    return;
-                }
+                if(!trabajadores[idx].horaEntradaTemp) { alert("Debe marcar entrada primero"); return; }
                 trabajadores[idx].horaSalidaTemp = ahora.toISOString();
-                showToast(`🚀 Salida registrada: ${trabajadores[idx].nombre}`);
+                showToast(`🚀 Salida: ${trabajadores[idx].nombre}`);
             }
             
             localStorage.setItem('taller_trabajadores', JSON.stringify(trabajadores));
             renderTable();
         }
 
-        // Renderizado de Interfaz
         function renderTable(filtro = "") {
             const cuerpo = document.getElementById('tablaAsistencia');
             const lista = trabajadores.filter(t => t.nombre.toLowerCase().includes(filtro.toLowerCase()));
 
             cuerpo.innerHTML = lista.map(t => `
                 <tr>
-                    <td>
-                        <div style="display:flex; flex-direction:column">
-                            <span style="font-weight:700; color:var(--primary-dark)">${t.nombre}</span>
-                            <small style="color:var(--text-muted)">ID: #${t.id}</small>
-                        </div>
-                    </td>
-                    <td><span style="background:#f1f5f9; padding:6px 10px; border-radius:8px; font-size:0.8rem; font-weight:600;">${t.area || 'General'}</span></td>
-                    <td><span class="price-tag">${formatCurrency(t.pagoHora)}</span></td>
+                    <td><b>${t.nombre}</b></td>
+                    <td><span style="background:#f1f5f9; padding:4px 8px; border-radius:6px; font-size:0.8rem;">${t.area || 'Taller'}</span></td>
                     <td>${formatFechaHora(t.horaEntradaTemp)}</td>
                     <td>${formatFechaHora(t.horaSalidaTemp)}</td>
                     <td style="text-align:right">
-                        <button class="btn-marc btn-in" onclick="realizarMarcado(${t.id}, 'entrada')">
-                            <i class="fa-solid fa-right-to-bracket"></i> Entrada
-                        </button>
-                        <button class="btn-marc btn-out" onclick="realizarMarcado(${t.id}, 'salida')">
-                            <i class="fa-solid fa-right-from-bracket"></i> Salida
-                        </button>
+                        <button class="btn-marc btn-in" onclick="realizarMarcado(${t.id}, 'entrada')">Entrada</button>
+                        <button class="btn-marc btn-out" onclick="realizarMarcado(${t.id}, 'salida')">Salida</button>
                     </td>
                 </tr>
             `).join('');
         }
 
-        function filtrarTrabajadores() {
-            renderTable(document.getElementById('busquedaNombre').value);
-        }
+        function filtrarTrabajadores() { renderTable(document.getElementById('busquedaNombre').value); }
 
         function showToast(msj) {
             const t = document.getElementById('toast');
             t.innerHTML = msj;
             t.style.display = 'block';
-            setTimeout(() => { t.style.display = 'none'; }, 3500);
+            setTimeout(() => { t.style.display = 'none'; }, 3000);
         }
 
-        // Eventos iniciales
+        function confirmarSalida() { if(confirm("¿Desea cerrar sesión?")) window.location.href = 'login.html'; }
+
         document.addEventListener('DOMContentLoaded', () => {
-            setInterval(actualizarReloj, 1000);
             actualizarReloj();
             cargarDatos();
         });
