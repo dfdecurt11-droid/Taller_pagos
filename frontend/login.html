@@ -140,7 +140,6 @@
 
         .btn-login:disabled { opacity: 0.7; cursor: not-allowed; }
 
-        /* Toast Mejorado */
         .toast {
             position: fixed;
             top: 20px;
@@ -225,20 +224,11 @@
             togglePass: document.getElementById('togglePassword')
         };
 
-        // --- Cargar foto si ya se logueó antes ---
-        const loadPreferences = () => {
-            const saved = JSON.parse(localStorage.getItem('session'));
-            if (saved && saved.foto) {
-                DOM.avatar.src = saved.foto;
-            }
-        };
-
         const showToast = (msg, type = 'success') => {
             const icon = type === 'success' ? 'fa-circle-check' : 'fa-circle-xmark';
             DOM.toast.className = `toast show ${type}`;
             document.getElementById('toastIcon').className = `fa-solid ${icon}`;
             document.getElementById('toastMessage').innerText = msg;
-            
             setTimeout(() => DOM.toast.classList.remove('show'), 4000);
         };
 
@@ -253,16 +243,16 @@
             e.preventDefault();
             
             if (!DOM.form.checkValidity()) {
-                showToast('Completa los campos', 'error');
+                showToast('Completa los campos correctamente', 'error');
                 return;
             }
 
+            // Estado de carga
             DOM.btn.disabled = true;
             DOM.btnText.style.opacity = '0';
             DOM.loader.style.display = 'block';
 
             try {
-                // Usamos ruta relativa /api/login para que funcione tanto local como en Render
                 const response = await fetch('/api/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -272,30 +262,43 @@
                     })
                 });
 
-                // Si el servidor responde con error, intentamos capturar el JSON del error
+                // --- VALIDACIÓN CRÍTICA ---
+                // Si la respuesta no es JSON (es HTML), esto fallará con el error que viste.
+                // Agregamos una verificación de tipo de contenido:
+                const contentType = response.headers.get("content-type");
+                if (!contentType || !contentType.includes("application/json")) {
+                    throw new Error("El servidor no respondió con JSON. Verifica la ruta de la API.");
+                }
+
                 const data = await response.json();
 
-                if (data.success) {
+                if (response.ok && data.success) {
                     localStorage.setItem('session', JSON.stringify(data));
-                    // IMPORTANTE: Cambié data.nombre por data.user para que coincida con tu backend
-                    showToast(`¡Bienvenido, ${data.user || 'Admin'}!`, 'success');
+                    showToast(`¡Bienvenido, ${data.user || 'Usuario'}!`, 'success');
                     
                     setTimeout(() => {
-                        window.location.href = 'index.html';
+                        window.location.href = 'index.html'; 
                     }, 1500);
                 } else {
-                    throw new Error(data.message || 'Credenciales inválidas');
+                    throw new Error(data.message || 'Credenciales incorrectas');
                 }
+
             } catch (error) {
-                console.error("Error Login:", error);
+                console.error("Error detallado:", error);
                 showToast(error.message, 'error');
+            } finally {
+                // Restaurar botón
                 DOM.btn.disabled = false;
                 DOM.btnText.style.opacity = '1';
                 DOM.loader.style.display = 'none';
             }
         });
 
-        window.onload = loadPreferences;
+        // Cargar foto si existe
+        window.onload = () => {
+            const saved = JSON.parse(localStorage.getItem('session'));
+            if (saved && saved.foto) DOM.avatar.src = saved.foto;
+        };
     </script>
 </body>
 </html>
