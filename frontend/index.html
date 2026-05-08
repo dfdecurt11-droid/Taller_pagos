@@ -198,23 +198,38 @@
     </div>
 
     <div class="content">
-        <div class="top-bar">
+        <div class="top-bar" style="background: #ffffff; border-bottom: 1px solid #e2e8f0; padding: 1.25rem 2rem;">
             <div class="admin-profile">
-                <img src="https://e01-expansion.uecdn.es/assets/multimedia/imagenes/2016/04/05/14598457966522.jpg" class="admin-photo" id="header-avatar">
+                <!-- Se eliminó la imagen y el icono para un look más minimalista -->
                 <div class="admin-info">
-                    <h4 id="header-name">Sandra Bendezu</h4>
-                    <small><i class="fa-solid fa-circle-check" style="color:var(--success)"></i> Administradora Principal</small>
+                    <small style="color: var(--secondary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.7rem; display: block; margin-bottom: 2px;">
+                        Bienvenida de nuevo,
+                    </small>
+                    <h4 id="header-name" style="margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--primary); letter-spacing: -0.025em;">
+                        SANDRA BENDEZU
+                    </h4>
+                    <span style="font-size: 0.75rem; color: var(--success); font-weight: 500;">
+                        Administradora Principal
+                    </span>
                 </div>
             </div>
-            <div style="display:flex; gap:12px; flex-wrap: wrap;">
-                <button class="btn btn-success" onclick="abrirModalTrabajador()">
-                    <i class="fa-solid fa-plus"></i> Nuevo Personal
+
+            <div style="display:flex; gap:16px; flex-wrap: wrap; align-items: center;">
+                <!-- Botones mejorados con efectos de elevación y fuentes más nítidas -->
+                <button class="btn btn-success" onclick="abrirModalTrabajador()" 
+                        style="box-shadow: 0 4px 10px rgba(5, 150, 105, 0.2); border: 1px solid rgba(255,255,255,0.1); padding: 12px 20px;">
+                    <i class="fa-solid fa-user-plus" style="font-size: 0.9rem;"></i> 
+                    <span style="letter-spacing: 0.3px;">Nuevo Personal</span>
                 </button>
-                <button class="btn btn-primary" onclick="generarReporteSemanal()">
-                    <i class="fa-solid fa-file-export"></i> Reporte General
+
+                <button class="btn btn-primary" onclick="generarReporteSemanal()" 
+                        style="box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2); border: 1px solid rgba(255,255,255,0.1); padding: 12px 20px;">
+                    <i class="fa-solid fa-file-invoice-dollar" style="font-size: 0.9rem;"></i> 
+                    <span style="letter-spacing: 0.3px;">Reporte General</span>
                 </button>
             </div>
         </div>
+    </div>
 
         <div class="dashboard-grid">
             <div class="card" style="border-top: 4px solid var(--accent);">
