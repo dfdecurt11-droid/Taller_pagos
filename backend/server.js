@@ -12,9 +12,7 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '50mb' })); 
 
-// NOTA: No ponemos el express.static aquí arriba porque 
-// ganaría el index.html por defecto. Lo ponemos más abajo.
-
+// Token de APIperu.dev (Configurable desde Render o por defecto)
 const TOKEN_RENIEC = process.env.TOKEN_RENIEC || 'sk_14781.y2AEO9v8Sx51hWfuNL0dVyDdK082pVsu';
 
 // =====================================================
@@ -44,7 +42,7 @@ app.get('/api/dni/:numero', async (req, res) => {
 });
 
 // =====================================================
-// 2. RUTAS DE USUARIOS Y PERSONAL
+// 2. RUTAS DE USUARIOS
 // =====================================================
 app.put('/api/usuarios/actualizar', async (req, res) => {
     const { nombre, email, pass, foto, telf, dni } = req.body;
@@ -57,21 +55,37 @@ app.put('/api/usuarios/actualizar', async (req, res) => {
     } catch (err) { res.status(500).send(err.message); }
 });
 
+// LOGIN MEJORADO (Evita errores de JSON vacío)
 app.post('/api/login', async (req, res) => {
     const { correo, password } = req.body;
+    if (!correo || !password) {
+        return res.status(400).json({ success: false, message: 'Faltan datos' });
+    }
     try {
         const result = await pool.query(
             'SELECT nombre, foto, telefono, dni FROM usuarios WHERE correo = $1 AND password = $2',
             [correo, password]
         );
         if (result.rows.length > 0) {
-            res.json({ success: true, user: result.rows[0].nombre, foto: result.rows[0].foto });
+            res.json({ 
+                success: true, 
+                user: result.rows[0].nombre, 
+                foto: result.rows[0].foto,
+                telefono: result.rows[0].telefono,
+                dni: result.rows[0].dni
+            });
         } else {
             res.status(401).json({ success: false, message: 'Credenciales incorrectas' });
         }
-    } catch (err) { res.status(500).send(err.message); }
+    } catch (err) { 
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Error en el servidor' }); 
+    }
 });
 
+// =====================================================
+// 3. PERSONAL Y ASISTENCIA
+// =====================================================
 app.post('/api/personal', async (req, res) => {
     const { dni, nombres, telefono, id_cargo, pago_semanal, area } = req.body;
     try {
@@ -90,9 +104,6 @@ app.get('/api/personal', async (req, res) => {
     } catch (err) { res.status(500).send(err.message); }
 });
 
-// =====================================================
-// 3. ASISTENCIA
-// =====================================================
 app.post('/api/asistencia', async (req, res) => {
     const { id_personal, tipo } = req.body;
     try {
@@ -118,24 +129,23 @@ app.get('/api/asistencia', async (req, res) => {
 });
 
 // =====================================================
-// RUTA FINAL PARA EL FRONTEND (CORREGIDO PARA PRIORIZAR LOGIN)
+// 4. MANEJO DEL FRONTEND (ORDEN PRIORITARIO)
 // =====================================================
 
-// 1. Forzamos que la raíz mande a login.html
+// Primero forzamos la ruta raíz al Login
 app.get('/', (req, res) => {
     res.sendFile(path.resolve(__dirname, '..', 'frontend', 'login.html'));
 });
 
-// 2. Cargamos los archivos estáticos DESPUÉS de la ruta raíz
-// para que no cargue el index.html por defecto
+// Cargamos los archivos estáticos (CSS, JS, Imágenes)
 app.use(express.static(path.resolve(__dirname, '../frontend')));
 
-// 3. Cualquier otra ruta no definida (como error 404) también manda al login
+// Si entran a cualquier otra ruta inexistente, mandamos al login
 app.get('*', (req, res) => {
     res.sendFile(path.resolve(__dirname, '..', 'frontend', 'login.html'));
 });
 
-// Puerto dinámico para Render
+// Inicio del servidor
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`🚀 Servidor funcionando en puerto: ${PORT}`);

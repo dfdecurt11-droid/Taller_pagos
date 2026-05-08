@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Acceso | Sistema Taller Pro</title>
     
-    <!-- Tipografía y Iconos -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     
@@ -29,7 +28,6 @@
         body { 
             font-family: 'Inter', sans-serif; 
             background-color: var(--bg-canvas);
-            /* Gradiente sutil de fondo profesional */
             background-image: radial-gradient(at 0% 0%, rgba(37, 99, 235, 0.05) 0px, transparent 50%), 
                               radial-gradient(at 100% 100%, rgba(37, 99, 235, 0.05) 0px, transparent 50%);
             display: flex; 
@@ -227,16 +225,14 @@
             togglePass: document.getElementById('togglePassword')
         };
 
-        // --- Persistencia de Usuario ---
+        // --- Cargar foto si ya se logueó antes ---
         const loadPreferences = () => {
-            const saved = JSON.parse(localStorage.getItem('taller_admin'));
-            if (saved) {
-                if (saved.foto) DOM.avatar.src = saved.foto;
-                if (saved.correo) DOM.email.value = saved.correo;
+            const saved = JSON.parse(localStorage.getItem('session'));
+            if (saved && saved.foto) {
+                DOM.avatar.src = saved.foto;
             }
         };
 
-        // --- UI Helpers ---
         const showToast = (msg, type = 'success') => {
             const icon = type === 'success' ? 'fa-circle-check' : 'fa-circle-xmark';
             DOM.toast.className = `toast show ${type}`;
@@ -246,7 +242,6 @@
             setTimeout(() => DOM.toast.classList.remove('show'), 4000);
         };
 
-        // --- Event Listeners ---
         DOM.togglePass.addEventListener('click', () => {
             const isPass = DOM.pass.type === 'password';
             DOM.pass.type = isPass ? 'text' : 'password';
@@ -257,19 +252,18 @@
         DOM.form.addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            // Validación básica
             if (!DOM.form.checkValidity()) {
-                showToast('Por favor, completa los campos correctamente', 'error');
+                showToast('Completa los campos', 'error');
                 return;
             }
 
-            // Estado de carga
             DOM.btn.disabled = true;
             DOM.btnText.style.opacity = '0';
             DOM.loader.style.display = 'block';
 
             try {
-                const response = await fetch('https://taller-pagos.onrender.com/api/login', {
+                // Usamos ruta relativa /api/login para que funcione tanto local como en Render
+                const response = await fetch('/api/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -278,11 +272,13 @@
                     })
                 });
 
+                // Si el servidor responde con error, intentamos capturar el JSON del error
                 const data = await response.json();
 
                 if (data.success) {
                     localStorage.setItem('session', JSON.stringify(data));
-                    showToast(`¡Bienvenido, ${data.nombre || 'Administrador'}!`);
+                    // IMPORTANTE: Cambié data.nombre por data.user para que coincida con tu backend
+                    showToast(`¡Bienvenido, ${data.user || 'Admin'}!`, 'success');
                     
                     setTimeout(() => {
                         window.location.href = 'index.html';
@@ -291,7 +287,8 @@
                     throw new Error(data.message || 'Credenciales inválidas');
                 }
             } catch (error) {
-                showToast(error.message === 'Failed to fetch' ? 'Servidor fuera de línea' : error.message, 'error');
+                console.error("Error Login:", error);
+                showToast(error.message, 'error');
                 DOM.btn.disabled = false;
                 DOM.btnText.style.opacity = '1';
                 DOM.loader.style.display = 'none';
