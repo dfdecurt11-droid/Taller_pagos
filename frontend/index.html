@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Taller Pro | Gestión de Planilla</title>
+    <!-- Google Fonts para un look moderno -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    
+    <style>
+        :root {
+            --primary: #0f172a; /* Slate 900 */
+            --secondary: #64748b; /* Slate 500 */
+            --accent: #2563eb; /* Blue 600 */
+            --danger: #dc2626; /* Red 600 */
+            --success: #059669; /* Emerald 600 */
+            --bg: #f1f5f9;
+            --white: #ffffff;
+            --radius: 12px;
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+
+        * { box-sizing: border-box; font-family: 'Inter', sans-serif; }
+
+        body { 
+            margin: 0; 
+            display: flex; 
+            background: var(--bg); 
+            color: #1e293b; 
+            min-height: 100vh;
+            transition: all 0.3s ease;
+        }
+        
+        /* SIDEBAR RESPONSIVO */
+        .sidebar { 
+            width: 260px; 
+            background: var(--primary); 
+            height: 100vh; 
+            color: white; 
+            position: fixed; 
+            display: flex; 
+            flex-direction: column; 
+            z-index: 100;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar-header { 
+            padding: 2rem 1.5rem; 
+            font-weight: 700;
+            letter-spacing: -0.025em;
+            border-bottom: 1px solid rgba(255,255,255,0.1); 
+        }
+
+        .nav-item { 
+            display: flex; 
+            align-items: center; 
+            padding: 12px 24px; 
+            color: #cbd5e1; 
+            text-decoration: none; 
+            cursor: pointer; 
+            margin: 4px 12px;
+            border-radius: 8px;
+            transition: 0.2s; 
+        }
+
+        .nav-item:hover, .nav-item.active { 
+            background: rgba(255,255,255,0.1); 
+            color: white; 
+        }
+
+        .nav-item i { margin-right: 12px; font-size: 1.1rem; }
+
+        /* CONTENIDO PRINCIPAL */
+        .content { 
+            margin-left: 260px; 
+            width: calc(100% - 260px); 
+            padding: 2rem; 
+            transition: all 0.3s ease;
+        }
+
+        .top-bar { 
+            background: var(--white); 
+            padding: 1rem 2rem; 
+            border-radius: var(--radius); 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            box-shadow: var(--shadow); 
+            margin-bottom: 2rem; 
+        }
+
+        .admin-profile { display: flex; align-items: center; gap: 12px; }
+        .admin-photo { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid var(--bg); }
+        .admin-info h4 { margin: 0; font-size: 0.95rem; }
+        .admin-info small { color: var(--secondary); }
+
+        /* DASHBOARD CARDS */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .card { 
+            background: var(--white); 
+            padding: 1.5rem; 
+            border-radius: var(--radius); 
+            box-shadow: var(--shadow); 
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .stat-label { color: var(--secondary); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
+        .stat-value { font-size: 1.8rem; font-weight: 800; color: var(--primary); margin: 0.5rem 0; }
+
+        /* TABLAS PROFESIONALES */
+        .table-container { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; min-width: 800px; }
+        th { 
+            background: #f8fafc;
+            text-align: left; 
+            padding: 12px 16px; 
+            color: var(--secondary); 
+            font-size: 0.75rem; 
+            font-weight: 600;
+            text-transform: uppercase; 
+            border-bottom: 1px solid #e2e8f0;
+        }
+        td { padding: 16px; border-bottom: 1px solid #f1f5f9; font-size: 0.875rem; }
+        tr:hover { background-color: #f8fafc; }
+
+        /* BOTONES */
+        .btn { 
+            padding: 10px 18px; 
+            border-radius: 8px; 
+            border: none; 
+            cursor: pointer; 
+            font-weight: 600; 
+            font-size: 0.875rem;
+            display: inline-flex; 
+            align-items: center; 
+            gap: 8px; 
+            transition: all 0.2s;
+        }
+        .btn:active { transform: scale(0.98); }
+        .btn-success { background: var(--success); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-outline { background: white; border: 1px solid #e2e8f0; color: #475569; }
+        .btn-icon { padding: 8px; border-radius: 6px; }
+
+        /* MODALES */
+        .modal { display: none; position: fixed; z-index: 1000; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(8px); }
+        .modal-content { 
+            background: white; 
+            max-width: 500px; 
+            width: 90%;
+            margin: 5vh auto; 
+            padding: 2rem; 
+            border-radius: 20px; 
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+        }
+
+        /* RESPONSIVIDAD (Móviles) */
+        @media (max-width: 1024px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.active { transform: translateX(0); }
+            .content { margin-left: 0; width: 100%; }
+            .top-bar { flex-direction: column; gap: 1rem; text-align: center; }
+            .nav-toggle { display: block; }
+        }
+
+        @media (max-width: 640px) {
+            .dashboard-grid { grid-template-columns: 1fr; }
+            .modal-content { padding: 1.5rem; }
+        }
+
+        .toast { 
+            position: fixed; bottom: 20px; right: 20px; 
+            background: #1e293b; color: white; 
+            padding: 1rem 1.5rem; border-radius: 12px; 
+            transform: translateY(150%); transition: 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+            z-index: 9999; display: flex; align-items: center; gap: 10px;
+        }
+        .toast.show { transform: translateY(0); }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <i class="fa-solid fa-scissors"></i> TALLER DE SASTRERIA
+        </div>
+        <div class="nav-item active" onclick="window.location.href='index.html'"><i class="fa-solid fa-chart-pie"></i> Dashboard</div>
+        <div class="nav-item" onclick="window.location.href='asistencia.html'"><i class="fa-solid fa-calendar-check"></i> Asistencia</div>
+        <div class="nav-item" onclick="window.location.href='configuracion.html'"><i class="fa-solid fa-sliders"></i> Ajustes</div>
+        
+        <div style="margin-top:auto; padding:20px;">
+            <button class="btn btn-danger" style="width:100%; justify-content: center;" onclick="openModal('modalSalir')">
+                <i class="fa-solid fa-power-off"></i> CERRAR SESIÓN
+            </button>
+        </div>
+    </div>
+
+    <div class="content">
+        <!-- BARRA SUPERIOR -->
+        <div class="top-bar">
+            <div class="admin-profile">
+                <img src="https://i.imgur.com/8Km9tLL.png" class="admin-photo" id="header-avatar">
+                <div class="admin-info">
+                    <h4 id="header-name">Sandra Bendezu</h4>
+                    <small><i class="fa-solid fa-circle-check" style="color:var(--success)"></i> Administradora Principal</small>
+                </div>
+            </div>
+            <div style="display:flex; gap:12px; flex-wrap: wrap;">
+                <button class="btn btn-success" onclick="abrirModalTrabajador()">
+                    <i class="fa-solid fa-plus"></i> Nuevo Personal
+                </button>
+                <button class="btn btn-primary" onclick="generarReporteSemanal()">
+                    <i class="fa-solid fa-file-export"></i> Reporte General
+                </button>
+            </div>
+        </div>
+
+        <!-- DASHBOARD STATS -->
+        <div class="dashboard-grid">
+            <div class="card" style="border-top: 4px solid var(--accent);">
+                <div class="stat-label">Presupuesto Disponible</div>
+                <div class="stat-value">S/ <span id="valPresupuesto">0.00</span></div>
+                <button class="btn btn-outline" style="width:100%; justify-content: center;" onclick="openModal('modalDinero')">Recargar Fondos</button>
+            </div>
+            <div class="card" style="border-top: 4px solid var(--success);">
+                <div class="stat-label">Total Trabajadores</div>
+                <div class="stat-value" id="countTrabajadores">0</div>
+                <small style="color:var(--secondary)">Personal activo hoy</small>
+            </div>
+        </div>
+
+        <!-- TABLA PRINCIPAL -->
+        <div class="card">
+            <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h3 style="margin:0">Gestión de Nómina Semanal</h3>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Trabajador</th>
+                            <th>DNI / Identificación</th>
+                            <th>Celular</th> <!-- Nueva Columna -->
+                            <th>Área</th>
+                            <th>Sueldo Base</th>
+                            <th>Progreso Horas</th>
+                            <th>Monto a Pagar</th>
+                            <th style="text-align: right;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaCuerpo"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL TRABAJADOR -->
+    <div id="modalTrabajador" class="modal">
+        <div class="modal-content">
+            <div style="text-align: center; margin-bottom: 1.5rem;">
+                <div style="width: 60px; height: 60px; background: #eff6ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
+                    <i class="fa-solid fa-user-gear" style="font-size: 1.5rem; color: var(--accent);"></i>
+                </div>
+                <h2 id="tituloModalTrabajador" style="margin:0">Registro de Personal</h2>
+            </div>
+            
+            <input type="hidden" id="editId">
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem; margin-bottom:1rem;">
+                <div class="input-group">
+                    <label style="font-size:0.8rem; font-weight:600; color:var(--secondary);">DNI</label>
+                    <input type="text" id="tDni" maxlength="8" style="width:100%; padding:12px; border:1px solid #e2e8f0; border-radius:8px;">
+                </div>
+                <div class="input-group">
+                    <label style="font-size:0.8rem; font-weight:600; color:var(--secondary);">TELÉFONO</label>
+                    <input type="text" id="tTelf" style="width:100%; padding:12px; border:1px solid #e2e8f0; border-radius:8px;">
+                </div>
+            </div>
+            <div class="input-group" style="margin-bottom:1rem;">
+                <label style="font-size:0.8rem; font-weight:600; color:var(--secondary);">NOMBRE COMPLETO</label>
+                <input type="text" id="tNombre" style="width:100%; padding:12px; border:1px solid #e2e8f0; border-radius:8px;">
+            </div>
+            <div class="input-group" style="margin-bottom:1rem;">
+                <label style="font-size:0.8rem; font-weight:600; color:var(--secondary);">ÁREA DE TRABAJO</label>
+                <select id="tArea" style="width:100%; padding:12px; border:1px solid #e2e8f0; border-radius:8px; background:white;">
+                    <option value="Manual">Manual</option>
+                    <option value="Máquina">Máquina</option>
+                    <option value="Planchador">Planchador</option>
+                </select>
+            </div>
+            <div class="input-group" style="margin-bottom:1.5rem;">
+                <label style="font-size:0.8rem; font-weight:600; color:var(--secondary);">SUELDO SEMANAL (S/)</label>
+                <input type="number" id="tSueldoBase" placeholder="Ej: 400" style="width:100%; padding:12px; border:1px solid #e2e8f0; border-radius:8px;">
+            </div>
+
+            <div style="display:flex; gap:10px;">
+                <button class="btn btn-primary" style="flex:2; justify-content: center;" onclick="guardarTrabajador()">Guardar Cambios</button>
+                <button class="btn btn-outline" style="flex:1; justify-content: center;" onclick="closeModal('modalTrabajador')">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL ELIMINAR / DESPEDIR -->
+    <div id="modalDespido" class="modal">
+        <div class="modal-content" style="text-align: center;">
+            <div style="color: var(--danger); font-size: 3rem; margin-bottom: 1rem;"><i class="fa-solid fa-circle-exclamation"></i></div>
+            <h3>¿Confirmar Despido?</h3>
+            <p id="txtPreguntaDespido" style="color:var(--secondary)"></p>
+            <div style="display:flex; gap:10px; margin-top: 1.5rem;">
+                <button class="btn btn-danger" id="btnConfDespido" style="flex:1; justify-content: center;">Confirmar Salida</button>
+                <button class="btn btn-outline" onclick="closeModal('modalDespido')" style="flex:1; justify-content: center;">Mantener</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL PAGO -->
+    <div id="modalPago" class="modal">
+        <div class="modal-content" style="text-align: center;">
+            <div style="color: var(--success); font-size: 3rem; margin-bottom: 1rem;"><i class="fa-solid fa-money-bill-transfer"></i></div>
+            <h3>Emitir Pago Semanal</h3>
+            <p id="txtPagoSub"></p>
+            <div style="background: #f0fdf4; padding: 1rem; border-radius: 8px; border: 1px solid #bbf7d0; margin: 1rem 0;">
+                <small style="color:#166534; font-weight:600;">Las horas acumuladas se reiniciarán tras este pago.</small>
+            </div>
+            <div style="display:flex; gap:10px;">
+                <button class="btn btn-success" id="btnOkPago" style="flex:1; justify-content: center;">Procesar Pago</button>
+                <button class="btn btn-outline" onclick="closeModal('modalPago')" style="flex:1; justify-content: center;">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL SALIR -->
+    <div id="modalSalir" class="modal">
+        <div class="modal-content" style="text-align: center;">
+            <h3>¿Cerrar Sesión?</h3>
+            <p>Se guardarán todos los cambios antes de salir.</p>
+            <div style="display:flex; gap:10px; margin-top:1.5rem;">
+                <button class="btn btn-danger" style="flex:1; justify-content: center;" onclick="window.location.href='login.html'">Salir</button>
+                <button class="btn btn-outline" style="flex:1; justify-content: center;" onclick="closeModal('modalSalir')">Volver</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DINERO -->
+    <div id="modalDinero" class="modal">
+        <div class="modal-content" style="text-align: center;">
+            <h3>Inyectar Capital</h3>
+            <div class="input-group" style="margin: 1.5rem 0;">
+                <input type="number" id="inputMonto" placeholder="0.00" style="width:100%; padding:15px; border:2px solid var(--accent); border-radius:12px; font-size: 2rem; text-align: center;">
+            </div>
+            <button class="btn btn-primary" style="width:100%; justify-content: center; padding:15px;" onclick="confirmarDinero()">Aumentar Presupuesto</button>
+            <button class="btn btn-outline" style="width:100%; margin-top:10px; justify-content: center;" onclick="closeModal('modalDinero')">Cancelar</button>
+        </div>
+    </div>
+
+    <div id="notif" class="toast">
+        <i class="fa-solid fa-circle-check"></i>
+        <div id="notifMsg"></div>
+    </div>
+
+    <script>
+        let presupuesto = 0.00;
+        let trabajadores = [];
+
+        function guardarEnLocalStorage() {
+            localStorage.setItem('taller_trabajadores', JSON.stringify(trabajadores));
+            localStorage.setItem('taller_presupuesto', presupuesto.toString());
+        }
+
+        function cargarDesdeLocalStorage() {
+            const sessionData = localStorage.getItem('taller_admin');
+            if(sessionData) {
+                const admin = JSON.parse(sessionData);
+                document.getElementById('header-name').innerText = admin.nombre;
+                if(admin.foto && admin.foto !== "null") document.getElementById('header-avatar').src = admin.foto;
+            }
+            const tGuardados = localStorage.getItem('taller_trabajadores');
+            const pGuardado = localStorage.getItem('taller_presupuesto');
+            if (tGuardados) trabajadores = JSON.parse(tGuardados);
+            if (pGuardado) presupuesto = parseFloat(pGuardado);
+            document.getElementById('valPresupuesto').innerText = presupuesto.toFixed(2);
+            render();
+        }
+
+        function render() {
+            const cuerpo = document.getElementById('tablaCuerpo');
+            document.getElementById('countTrabajadores').innerText = trabajadores.length;
+
+            if (trabajadores.length === 0) {
+                cuerpo.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:50px; color:var(--secondary);">No hay personal en la lista. Pulse "Nuevo Personal" para empezar.</td></tr>`;
+                return;
+            }
+
+            cuerpo.innerHTML = trabajadores.map(t => {
+                let ganado = (t.totalMinutos / 60) * t.sueldoHora;
+                const hrs = Math.floor(t.totalMinutos / 60);
+                const mins = t.totalMinutos % 60;
+
+                return `<tr>
+                    <td><div style="font-weight:700; color:var(--primary)">${t.nombre}</div></td>
+                    <td><code style="background:#f1f5f9; padding:2px 6px; border-radius:4px;">${t.dni}</code></td>
+                    <td>${t.telf || '-'}</td>
+                    <td><span style="background:#e0f2fe; color:#0369a1; padding:4px 8px; border-radius:6px; font-size:0.75rem; font-weight:700;">${t.area}</span></td>
+                    <td>S/ ${t.sueldoBase.toFixed(2)}</td>
+                    <td><i class="fa-regular fa-clock"></i> ${hrs}h ${mins}m</td>
+                    <td><b style="color:var(--success); font-size:1rem;">S/ ${ganado.toFixed(2)}</b></td>
+                    <td style="text-align: right;">
+                        <button class="btn btn-outline btn-icon" title="Pagar" onclick="abrirPago(${t.id}, '${t.nombre}', ${ganado})"><i class="fa-solid fa-hand-holding-dollar" style="color:var(--success)"></i></button>
+                        <button class="btn btn-outline btn-icon" title="Editar" onclick="editarPersonal(${t.id})"><i class="fa-solid fa-user-pen" style="color:var(--accent)"></i></button>
+                        <button class="btn btn-outline btn-icon" title="PDF" onclick="pdfIndividual(${t.id})"><i class="fa-solid fa-file-pdf"></i></button>
+                        <button class="btn btn-outline btn-icon" title="Eliminar" onclick="abrirDespido(${t.id}, '${t.nombre}')"><i class="fa-solid fa-trash-can" style="color:var(--danger)"></i></button>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        function guardarTrabajador() {
+            const id = document.getElementById('editId').value;
+            const nombre = document.getElementById('tNombre').value.toUpperCase();
+            const dni = document.getElementById('tDni').value;
+            const telf = document.getElementById('tTelf').value;
+            const area = document.getElementById('tArea').value;
+            const sueldoBase = parseFloat(document.getElementById('tSueldoBase').value || 400);
+
+            if(!nombre || !dni) { showToast("Nombre y DNI requeridos"); return; }
+
+            if(id) {
+                const idx = trabajadores.findIndex(x => x.id == id);
+                trabajadores[idx] = { ...trabajadores[idx], nombre, dni, telf, area, sueldoBase, sueldoHora: sueldoBase/62 };
+            } else {
+                trabajadores.push({
+                    id: Date.now(),
+                    nombre, dni, telf, area,
+                    sueldoBase, sueldoHora: sueldoBase/62,
+                    totalMinutos: 0,
+                    historial: [] 
+                });
+            }
+            guardarEnLocalStorage();
+            closeModal('modalTrabajador');
+            render();
+            showToast("Datos guardados correctamente");
+        }
+
+        // REPORTE INDIVIDUAL MEJORADO
+        function pdfIndividual(id) {
+            const t = trabajadores.find(x => x.id === id);
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Header Estilo Corporativo
+            doc.setFillColor(15, 23, 42); 
+            doc.rect(0, 0, 210, 40, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(18);
+            doc.text("REPORTE INDIVIDUAL DE TRABAJADOR", 105, 20, {align: 'center'});
+            doc.setFontSize(10);
+            doc.text(`TALLER DESASTRE PICÓ BENDEZUN | Fecha: ${new Date().toLocaleDateString()}`, 105, 30, {align: 'center'});
+
+            doc.setTextColor(40);
+            doc.setFontSize(11);
+            // Información del Trabajador
+            doc.text(`NOMBRE: ${t.nombre}`, 20, 50);
+            doc.text(`DNI: ${t.dni}`, 20, 57);
+            doc.text(`CELULAR: ${t.telf || 'No registrado'}`, 20, 64);
+            doc.text(`ÁREA: ${t.area}`, 20, 71);
+            
+            // Información Económica
+            const hrsTotales = Math.floor(t.totalMinutos / 60);
+            const minsTotales = t.totalMinutos % 60;
+            const ganadoTotal = (t.totalMinutos / 60) * t.sueldoHora;
+
+            doc.text(`SUELDO BASE: S/ ${t.sueldoBase.toFixed(2)}`, 140, 50);
+            doc.text(`HORAS TOTALES: ${hrsTotales}h ${minsTotales}m`, 140, 57);
+            doc.setFont(undefined, 'bold');
+            doc.text(`MONTO A PAGAR: S/ ${ganadoTotal.toFixed(2)}`, 140, 64);
+            doc.setFont(undefined, 'normal');
+
+            // Tabla de Historial
+            doc.autoTable({
+                startY: 80,
+                head: [['N°', 'Fecha', 'Turno', 'Entrada', 'Salida', 'Horas', 'Monto']],
+                body: t.historial.map((h, i) => [
+                    i + 1, 
+                    h.fecha, 
+                    h.turno || '-', 
+                    h.entrada, 
+                    h.salida, 
+                    `${Math.floor(h.minutos/60)}h ${h.minutos%60}m`, 
+                    `S/ ${((h.minutos/60)*t.sueldoHora).toFixed(2)}`
+                ]),
+                theme: 'striped',
+                headStyles: { fillColor: [37, 99, 235] }
+            });
+
+            const finalY = doc.lastAutoTable.finalY || 80;
+            doc.setFontSize(14);
+            doc.text(`TOTAL ACUMULADO: S/ ${ganadoTotal.toFixed(2)}`, 190, finalY + 20, {align:'right'});
+            doc.save(`Reporte_${t.nombre}.pdf`);
+        }
+
+        // REPORTE GENERAL PROFESIONAL
+        function generarReporteSemanal() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            doc.setFillColor(37, 99, 235);
+            doc.rect(0, 0, 210, 45, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(20);
+            doc.text("PLANILLA GENERAL DE PAGOS", 105, 20, { align: 'center' });
+            doc.setFontSize(12);
+            doc.text("TALLER DESASTRE PICÓ BENDEZUN", 105, 30, { align: 'center' });
+            doc.text(`Total Personal: ${trabajadores.length} | Administradora: Sandra Bendezu`, 105, 38, { align: 'center' });
+
+            const data = trabajadores.map((t, i) => [
+                i + 1, 
+                t.nombre, 
+                t.dni, 
+                t.area, 
+                `${Math.floor(t.totalMinutos/60)}h`,
+                `S/ ${((t.totalMinutos/60)*t.sueldoHora).toFixed(2)}`
+            ]);
+
+            doc.autoTable({ 
+                startY: 55, 
+                head: [['ID', 'Nombre Completo', 'DNI', 'Área', 'Hrs.', 'Total a Pagar']], 
+                body: data,
+                styles: { fontSize: 9, cellPadding: 5 },
+                headStyles: { fillColor: [15, 23, 42] }
+            });
+            
+            doc.save("Planilla_General_Taller.pdf");
+        }
+
+        function abrirPago(id, n, m) {
+            document.getElementById('txtPagoSub').innerText = `Se liquidará un total de S/ ${m.toFixed(2)} a favor de ${n}.`;
+            openModal('modalPago');
+            document.getElementById('btnOkPago').onclick = () => {
+                if(presupuesto >= m) {
+                    presupuesto -= m;
+                    const t = trabajadores.find(x => x.id === id);
+                    t.totalMinutos = 0; t.historial = []; 
+                    guardarEnLocalStorage();
+                    closeModal('modalPago'); render();
+                    showToast(`Pago de S/ ${m.toFixed(2)} procesado`);
+                } else alert("Fondo de caja insuficiente");
+            };
+        }
+
+        function abrirDespido(id, n) {
+            document.getElementById('txtPreguntaDespido').innerText = `¿Está seguro de despedir a ${n}? Esta acción eliminará su registro permanentemente.`;
+            openModal('modalDespido');
+            document.getElementById('btnConfDespido').onclick = () => {
+                trabajadores = trabajadores.filter(x => x.id !== id);
+                guardarEnLocalStorage();
+                closeModal('modalDespido'); render();
+                showToast(`Se ha despedido a ${n}`);
+            };
+        }
+
+        function confirmarDinero() {
+            let m = parseFloat(document.getElementById('inputMonto').value || 0);
+            if(m <= 0) return;
+            presupuesto += m;
+            guardarEnLocalStorage();
+            document.getElementById('valPresupuesto').innerText = presupuesto.toFixed(2);
+            closeModal('modalDinero');
+            showToast("Capital actualizado");
+        }
+
+        function openModal(id) { document.getElementById(id).style.display = 'block'; }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+        
+        function showToast(m) { 
+            const t = document.getElementById('notif'); 
+            document.getElementById('notifMsg').innerText = m; 
+            t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 3000); 
+        }
+
+        function abrirModalTrabajador() {
+            document.getElementById('editId').value = "";
+            document.getElementById('tituloModalTrabajador').innerText = "Registrar Personal";
+            document.getElementById('tDni').value = ""; document.getElementById('tNombre').value = "";
+            document.getElementById('tTelf').value = ""; document.getElementById('tSueldoBase').value = "";
+            openModal('modalTrabajador');
+        }
+
+        function editarPersonal(id) {
+            const t = trabajadores.find(x => x.id == id);
+            document.getElementById('editId').value = t.id;
+            document.getElementById('tDni').value = t.dni;
+            document.getElementById('tNombre').value = t.nombre;
+            document.getElementById('tTelf').value = t.telf;
+            document.getElementById('tArea').value = t.area;
+            document.getElementById('tSueldoBase').value = t.sueldoBase;
+            document.getElementById('tituloModalTrabajador').innerText = "Editar Personal";
+            openModal('modalTrabajador');
+        }
+
+        window.onload = cargarDesdeLocalStorage;
+    </script>
+</body>
+</html>

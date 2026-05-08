@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuración | Taller Pro</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary-dark: #0b1120; /* Sidebar exacto a la imagen */
+            --nav-active: #1e293b;
+            --accent: #3b82f6;
+            --danger: #dc2626;
+            --success: #10b981;
+            --bg-main: #f1f5f9;
+            --text-main: #1e293b;
+            --radius-lg: 24px;
+            --radius-md: 12px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+
+        body { 
+            background: var(--bg-main); 
+            color: var(--text-main); 
+            display: flex; 
+            min-height: 100vh; 
+        }
+
+        /* --- SIDEBAR IDENTICO AL INDEX --- */
+        .sidebar { 
+            width: 260px; 
+            background: var(--primary-dark); 
+            color: white; 
+            position: fixed; 
+            height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
+            z-index: 1000;
+        }
+
+        .sidebar-header { 
+            padding: 2rem 1.5rem; 
+            font-weight: 700;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .nav-list { flex-grow: 1; padding: 0.5rem 1rem; }
+
+        .nav-item { 
+            display: flex; align-items: center; padding: 12px 16px; 
+            color: #e2e8f0; text-decoration: none; border-radius: 10px;
+            margin-bottom: 5px; font-weight: 500; font-size: 0.95rem; transition: 0.2s;
+        }
+
+        .nav-item.active { background: var(--nav-active); color: white; }
+        .nav-item:hover:not(.active) { background: rgba(255,255,255,0.05); }
+        .nav-item i { margin-right: 12px; width: 24px; text-align: center; }
+
+        .logout-container { padding: 1.5rem; }
+        .btn-logout {
+            width: 100%; background: var(--danger); color: white; border: none;
+            padding: 14px; border-radius: 12px; font-weight: 700; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            text-transform: uppercase; font-size: 0.85rem;
+        }
+
+        /* --- CONTENIDO PRINCIPAL --- */
+        .content { 
+            margin-left: 260px; 
+            width: calc(100% - 260px); 
+            padding: 2.5rem; 
+            transition: 0.3s;
+        }
+
+        .config-card { 
+            background: white; max-width: 900px; margin: 0 auto; 
+            border-radius: var(--radius-lg); box-shadow: 0 10px 25px rgba(0,0,0,0.05); 
+            overflow: hidden; 
+        }
+
+        .config-header { 
+            background: var(--primary-dark); color: white; 
+            padding: 3rem 2rem; text-align: center; 
+        }
+
+        .profile-upload { position: relative; width: 110px; height: 110px; margin: 0 auto 1.2rem; }
+        #avatar-preview { 
+            width: 100%; height: 100%; border-radius: 50%; object-fit: cover; 
+            border: 4px solid var(--accent); background: #1e293b; 
+        }
+        .btn-camera { 
+            position: absolute; bottom: 0; right: 0; background: var(--accent); 
+            width: 32px; height: 32px; border-radius: 50%; display: flex; 
+            align-items: center; justify-content: center; cursor: pointer; border: 3px solid var(--primary-dark);
+        }
+
+        .config-body { padding: 2.5rem; }
+
+        .section-header { 
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 1.5rem; padding-bottom: 0.5rem; border-bottom: 1px solid #f1f5f9;
+        }
+        .section-header span { font-weight: 700; font-size: 0.85rem; color: #64748b; text-transform: uppercase; }
+
+        /* --- FORMULARIO ADAPTABLE --- */
+        .grid-form { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); 
+            gap: 1.5rem; 
+            margin-bottom: 2.5rem; 
+        }
+
+        .input-group { display: flex; flex-direction: column; gap: 8px; position: relative; }
+        label { font-size: 0.85rem; font-weight: 600; color: #475569; }
+        input { 
+            padding: 12px 16px; border-radius: 10px; border: 1px solid #e2e8f0; 
+            background: #f8fafc; font-size: 0.95rem; outline: none; transition: 0.2s;
+        }
+        input:focus { border-color: var(--accent); background: white; box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1); }
+        input:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .btn-save { 
+            width: 100%; padding: 16px; background: var(--accent); color: white;
+            border: none; border-radius: 12px; font-weight: 700; font-size: 1rem;
+            cursor: pointer; transition: 0.2s;
+        }
+        .btn-save:hover { opacity: 0.9; transform: translateY(-1px); }
+
+        .lock-btn { 
+            cursor: pointer; font-size: 0.75rem; font-weight: 700; padding: 6px 12px;
+            border-radius: 8px; display: flex; align-items: center; gap: 6px;
+        }
+        .locked { background: #f1f5f9; color: #64748b; }
+        .unlocked { background: #dcfce7; color: var(--success); }
+
+        /* --- RESPONSIVIDAD (Celulares y Tablets) --- */
+        @media (max-width: 1024px) {
+            .sidebar { width: 80px; }
+            .sidebar span, .sidebar h2 { display: none; }
+            .sidebar-header { justify-content: center; }
+            .content { margin-left: 80px; width: calc(100% - 80px); padding: 1.5rem; }
+        }
+
+        @media (max-width: 640px) {
+            .grid-form { grid-template-columns: 1fr; }
+            .config-body { padding: 1.5rem; }
+            .content { padding: 1rem; }
+        }
+
+        /* --- MODAL Y TOAST --- */
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 2000; place-items: center; }
+        .modal-content { background: white; padding: 2rem; border-radius: 20px; text-align: center; width: 90%; max-width: 400px; }
+        
+        .toast { 
+            position: fixed; bottom: 20px; right: -400px; background: #1e293b; color: white; 
+            padding: 1rem 1.5rem; border-radius: 12px; transition: 0.5s; z-index: 3000;
+        }
+        .toast.show { right: 20px; }
+    </style>
+</head>
+<body>
+
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <i class="fa-solid fa-scissors"></i> <h2>TALLER DE SASTRERIA</h2>
+        </div>
+        <div class="nav-list">
+            <a href="index.html" class="nav-item">
+                <i class="fa-solid fa-chart-pie"></i> <span>Dashboard</span>
+            </a>
+            <a href="asistencia.html" class="nav-item">
+                <i class="fa-solid fa-calendar-check"></i> <span>Asistencia</span>
+            </a>
+            <a href="configuracion.html" class="nav-item active">
+                <i class="fa-solid fa-sliders"></i> <span>Ajustes</span>
+            </a>
+        </div>
+        <div class="logout-container">
+            <button class="btn-logout" onclick="abrirModalSalir()">
+                <i class="fa-solid fa-power-off"></i> <span>Cerrar Sesión</span>
+            </button>
+        </div>
+    </nav>
+
+    <main class="content">
+        <div class="config-card">
+            <div class="config-header">
+                <div class="profile-upload">
+                    <img src="https://i.imgur.com/8Km9tLL.png" id="avatar-preview">
+                    <label for="input-file" class="btn-camera"><i class="fa-solid fa-camera" style="font-size: 0.8rem;"></i></label>
+                    <input type="file" id="input-file" hidden accept="image/*">
+                </div>
+                <h2 id="display-name" style="margin-bottom: 5px;">Admin Taller</h2>
+                <p id="display-email" style="opacity: 0.7; font-size: 0.9rem;">admin@tallerpro.com</p>
+            </div>
+
+            <div class="config-body">
+                <div class="section-header">
+                    <span>Información Personal</span>
+                    <div class="lock-btn locked" id="lock-personal" onclick="toggleLock('personal')">
+                        <i class="fa-solid fa-lock"></i> Bloqueado
+                    </div>
+                </div>
+                
+                <div class="grid-form">
+                    <div class="input-group">
+                        <label>Nombre Completo</label>
+                        <input type="text" id="conf-nombre" disabled>
+                    </div>
+                    <div class="input-group">
+                        <label>Teléfono</label>
+                        <input type="text" id="conf-telf" disabled>
+                    </div>
+                    <div class="input-group">
+                        <label>Documento (DNI)</label>
+                        <input type="text" id="conf-dni" disabled>
+                    </div>
+                    <div class="input-group">
+                        <label>Correo</label>
+                        <input type="email" id="conf-email" disabled>
+                    </div>
+                </div>
+
+                <div class="section-header">
+                    <span>Seguridad</span>
+                    <div class="lock-btn locked" id="lock-security" onclick="toggleLock('security')">
+                        <i class="fa-solid fa-lock"></i> Bloqueado
+                    </div>
+                </div>
+
+                <div class="grid-form">
+                    <div class="input-group">
+                        <label>Nueva Contraseña</label>
+                        <input type="password" id="conf-pass" placeholder="••••••••" disabled>
+                    </div>
+                    <div class="input-group">
+                        <label>Confirmar Contraseña</label>
+                        <input type="password" id="conf-pass-confirm" placeholder="••••••••" disabled>
+                    </div>
+                </div>
+
+                <button class="btn-save" id="btnGuardar">
+                    <i class="fa-solid fa-floppy-disk"></i> GUARDAR CAMBIOS
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <div id="modalSalir" class="modal">
+        <div class="modal-content">
+            <i class="fa-solid fa-circle-exclamation" style="font-size: 3rem; color: var(--danger);"></i>
+            <h3 style="margin: 1rem 0;">Cerrar Sesión</h3>
+            <p style="color: #64748b; margin-bottom: 2rem;">¿Estás seguro que deseas salir del sistema?</p>
+            <div style="display: flex; gap: 10px;">
+                <button onclick="location.href='login.html'" style="flex: 1; padding: 12px; background: var(--danger); color: white; border: none; border-radius: 10px; font-weight: 700; cursor: pointer;">Sí, Salir</button>
+                <button onclick="cerrarModalSalir()" style="flex: 1; padding: 12px; background: #f1f5f9; border: none; border-radius: 10px; font-weight: 700; cursor: pointer;">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast">✅ Cambios guardados correctamente</div>
+
+    <script>
+        const preview = document.getElementById('avatar-preview');
+        const imgInput = document.getElementById('input-file');
+        let fotoData = "";
+
+        window.onload = () => {
+            const data = JSON.parse(localStorage.getItem('taller_admin') || '{}');
+            if (data.nombre) {
+                document.getElementById('conf-nombre').value = data.nombre;
+                document.getElementById('conf-email').value = data.email;
+                document.getElementById('conf-telf').value = data.telf;
+                document.getElementById('conf-dni').value = data.dni;
+                document.getElementById('display-name').innerText = data.nombre;
+                document.getElementById('display-email').innerText = data.email;
+                if (data.foto) preview.src = data.foto;
+            }
+        };
+
+        imgInput.onchange = (e) => {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                fotoData = event.target.result;
+                preview.src = fotoData;
+            };
+            reader.readAsDataURL(e.target.files[0]);
+        };
+
+        function toggleLock(type) {
+            const ids = type === 'personal' ? ['conf-nombre', 'conf-telf', 'conf-dni', 'conf-email'] : ['conf-pass', 'conf-pass-confirm'];
+            const btn = document.getElementById('lock-' + type);
+            const isLocked = document.getElementById(ids[0]).disabled;
+
+            ids.forEach(id => document.getElementById(id).disabled = !isLocked);
+            btn.className = isLocked ? 'lock-btn unlocked' : 'lock-btn locked';
+            btn.innerHTML = isLocked ? '<i class="fa-solid fa-lock-open"></i> Editable' : '<i class="fa-solid fa-lock"></i> Bloqueado';
+        }
+
+        document.getElementById('btnGuardar').onclick = function() {
+            const payload = {
+                nombre: document.getElementById('conf-nombre').value,
+                email: document.getElementById('conf-email').value,
+                telf: document.getElementById('conf-telf').value,
+                dni: document.getElementById('conf-dni').value,
+                foto: fotoData || preview.src
+            };
+            localStorage.setItem('taller_admin', JSON.stringify(payload));
+            
+            const toast = document.getElementById('toast');
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        };
+
+        function abrirModalSalir() { document.getElementById('modalSalir').style.display = 'grid'; }
+        function cerrarModalSalir() { document.getElementById('modalSalir').style.display = 'none'; }
+    </script>
+</body>
+</html>

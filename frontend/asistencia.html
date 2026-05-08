@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asistencia Profesional | Taller Pro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary-dark: #0b1120; /* Fondo Sidebar ultra oscuro (Igual a imagen) */
+            --nav-active: #1e293b;   /* Color del item activo */
+            --accent: #3b82f6;      
+            --danger-btn: #dc2626;   /* Rojo sólido botón salir */
+            --bg-main: #f1f5f9;     
+            --white: #ffffff;
+        }
+
+        * { box-sizing: border-box; font-family: 'Inter', sans-serif; }
+
+        body { 
+            margin: 0; 
+            display: flex; 
+            background: var(--bg-main); 
+            min-height: 100vh;
+        }
+        
+        /* --- SIDEBAR IDENTICO AL INDEX --- */
+        .sidebar { 
+            width: 260px; 
+            background: var(--primary-dark); 
+            height: 100vh; 
+            color: white; 
+            position: fixed; 
+            display: flex; 
+            flex-direction: column; 
+            z-index: 1000;
+        }
+
+        .sidebar-header { 
+            padding: 2rem 1.5rem; 
+            font-weight: 700;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            letter-spacing: -0.5px;
+        }
+
+        .nav-list { flex-grow: 1; padding: 0.5rem 1rem; }
+
+        .nav-item { 
+            display: flex; 
+            align-items: center; 
+            padding: 12px 16px; 
+            color: #e2e8f0; 
+            text-decoration: none; 
+            cursor: pointer; 
+            margin-bottom: 5px;
+            border-radius: 10px;
+            font-weight: 500;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+        }
+
+        /* Item activo (Dashboard/Asistencia) */
+        .nav-item.active { 
+            background: var(--nav-active); 
+            color: white; 
+        }
+
+        .nav-item:hover:not(.active) { background: rgba(255,255,255,0.05); }
+
+        .nav-item i { 
+            margin-right: 12px; 
+            font-size: 1.1rem; 
+            width: 24px; 
+            text-align: center;
+        }
+
+        /* Botón Salir (Fondo Rojo como la imagen) */
+        .logout-container { padding: 1.5rem; }
+        
+        .btn-logout {
+            width: 100%;
+            background: var(--danger-btn);
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: opacity 0.2s;
+        }
+
+        .btn-logout:hover { opacity: 0.9; }
+
+        /* --- CONTENIDO PRINCIPAL --- */
+        .content { 
+            margin-left: 260px; 
+            width: calc(100% - 260px); 
+            padding: 2.5rem; 
+        }
+
+        .container-main {
+            background: var(--white);
+            border-radius: 24px;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05);
+            padding: 2rem;
+            border: 1px solid rgba(0,0,0,0.02);
+        }
+
+        .top-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .clock-box {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: var(--accent);
+            background: #eff6ff;
+            padding: 12px 24px;
+            border-radius: 15px;
+            border: 1px solid #dbeafe;
+        }
+
+        .search-container {
+            position: relative;
+            margin-bottom: 2rem;
+            max-width: 450px;
+        }
+        .search-container input {
+            width: 100%;
+            padding: 14px 16px 14px 48px;
+            border-radius: 14px;
+            border: 1px solid #e2e8f0;
+            background: #f8fafc;
+            font-size: 1rem;
+            outline: none;
+        }
+        .search-container i { position: absolute; left: 18px; top: 17px; color: #94a3b8; }
+
+        /* TABLA */
+        .table-wrapper { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; min-width: 800px; }
+        th { 
+            text-align: left; padding: 16px; 
+            color: #64748b; font-size: 0.75rem; 
+            text-transform: uppercase; letter-spacing: 1px;
+            border-bottom: 2px solid #f1f5f9;
+        }
+        td { padding: 18px 16px; border-bottom: 1px solid #f1f5f9; font-size: 0.95rem; }
+
+        /* BOTONES ACCIÓN */
+        .btn-marc {
+            padding: 10px 18px; border-radius: 10px; border: none; cursor: pointer;
+            font-weight: 700; display: inline-flex; align-items: center; gap: 8px;
+            transition: 0.2s; font-size: 0.85rem;
+        }
+        .btn-in { background: #10b981; color: white; }
+        .btn-out { background: #6366f1; color: white; }
+
+        /* TOAST */
+        .toast { 
+            position: fixed; bottom: 30px; right: 30px; 
+            background: #1e293b; color: white; 
+            padding: 1.2rem 2rem; border-radius: 16px; 
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2);
+            border-left: 6px solid var(--accent);
+            display: none; z-index: 2000;
+        }
+
+        @media (max-width: 1024px) {
+            .sidebar { width: 80px; }
+            .sidebar-header span, .nav-item span, .btn-logout span { display: none; }
+            .content { margin-left: 80px; width: calc(100% - 80px); }
+            .sidebar-header { justify-content: center; padding: 1.5rem 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <i class="fa-solid fa-scissors"></i> <span>TALLER DE SASTRERIA</span>
+        </div>
+        
+        <nav class="nav-list">
+            <div class="nav-item" onclick="window.location.href='index.html'">
+                <i class="fa-solid fa-chart-pie"></i> <span>Dashboard</span>
+            </div>
+            <div class="nav-item active" onclick="window.location.href='asistencia.html'">
+                <i class="fa-solid fa-calendar-check"></i> <span>Asistencia</span>
+            </div>
+            <div class="nav-item" onclick="window.location.href='configuracion.html'">
+                <i class="fa-solid fa-sliders"></i> <span>Ajustes</span>
+            </div>
+        </nav>
+
+        <div class="logout-container">
+            <button class="btn-logout" onclick="confirmarSalida()">
+                <i class="fa-solid fa-power-off"></i> <span>Cerrar Sesión</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="content">
+        <div class="container-main">
+            <div class="top-header">
+                <div>
+                    <h2 style="margin:0; font-size: 1.8rem; letter-spacing: -1px;">Control de Asistencia</h2>
+                    <p style="color: #64748b; margin: 5px 0 0;">Registre marcaciones de entrada y salida</p>
+                </div>
+                <div id="reloj-digital" class="clock-box">00:00:00</div>
+            </div>
+
+            <div class="search-container">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="busquedaNombre" placeholder="Buscar personal..." onkeyup="filtrarTrabajadores()">
+            </div>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Trabajador</th>
+                            <th>Área</th>
+                            <th>Última Entrada</th>
+                            <th>Última Salida</th>
+                            <th style="text-align:right">Marcación</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaAsistencia"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+        let trabajadores = [];
+
+        function actualizarReloj() {
+            const ahora = new Date();
+            document.getElementById('reloj-digital').innerText = ahora.toLocaleTimeString('en-US', { 
+                hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true 
+            });
+        }
+        setInterval(actualizarReloj, 1000);
+
+        function formatFechaHora(isoStr) {
+            if (!isoStr) return '<span style="color:#cbd5e1">Sin registro</span>';
+            const d = new Date(isoStr);
+            return `<b>${d.toLocaleDateString('es-PE')}</b> <small>|</small> ${d.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit', hour12:true})}`;
+        }
+
+        function cargarDatos() {
+            const datos = localStorage.getItem('taller_trabajadores');
+            if (datos) trabajadores = JSON.parse(datos);
+            renderTable();
+        }
+
+        function realizarMarcado(id, tipo) {
+            const ahora = new Date();
+            const idx = trabajadores.findIndex(t => t.id === id);
+            if (idx === -1) return;
+
+            if (tipo === 'entrada') {
+                trabajadores[idx].horaEntradaTemp = ahora.toISOString();
+                trabajadores[idx].horaSalidaTemp = null;
+                showToast(`✅ Entrada: ${trabajadores[idx].nombre}`);
+            } else {
+                if(!trabajadores[idx].horaEntradaTemp) { alert("Debe marcar entrada primero"); return; }
+                trabajadores[idx].horaSalidaTemp = ahora.toISOString();
+                showToast(`🚀 Salida: ${trabajadores[idx].nombre}`);
+            }
+            
+            localStorage.setItem('taller_trabajadores', JSON.stringify(trabajadores));
+            renderTable();
+        }
+
+        function renderTable(filtro = "") {
+            const cuerpo = document.getElementById('tablaAsistencia');
+            const lista = trabajadores.filter(t => t.nombre.toLowerCase().includes(filtro.toLowerCase()));
+
+            cuerpo.innerHTML = lista.map(t => `
+                <tr>
+                    <td><b>${t.nombre}</b></td>
+                    <td><span style="background:#f1f5f9; padding:4px 8px; border-radius:6px; font-size:0.8rem;">${t.area || 'Taller'}</span></td>
+                    <td>${formatFechaHora(t.horaEntradaTemp)}</td>
+                    <td>${formatFechaHora(t.horaSalidaTemp)}</td>
+                    <td style="text-align:right">
+                        <button class="btn-marc btn-in" onclick="realizarMarcado(${t.id}, 'entrada')">Entrada</button>
+                        <button class="btn-marc btn-out" onclick="realizarMarcado(${t.id}, 'salida')">Salida</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function filtrarTrabajadores() { renderTable(document.getElementById('busquedaNombre').value); }
+
+        function showToast(msj) {
+            const t = document.getElementById('toast');
+            t.innerHTML = msj;
+            t.style.display = 'block';
+            setTimeout(() => { t.style.display = 'none'; }, 3000);
+        }
+
+        function confirmarSalida() { if(confirm("¿Desea cerrar sesión?")) window.location.href = 'login.html'; }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            actualizarReloj();
+            cargarDatos();
+        });
+    </script>
+</body>
+</html>
