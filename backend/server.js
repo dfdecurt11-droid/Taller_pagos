@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const pool = require('./db');
 const axios = require('axios');
+const path = require('path'); // Necesario para las rutas de archivos
 
 const app = express();
 
@@ -11,11 +12,15 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '50mb' })); 
 
-// Tu Token de APIperu.dev / APIDNI
-const TOKEN_RENIEC = 'sk_14781.y2AEO9v8Sx51hWfuNL0dVyDdK082pVsu';
+// Servir archivos estáticos del frontend
+// Esto permite que al abrir la URL de Render se vea tu index.html
+app.use(express.static(path.join(__dirname, '../frontend')));
+
+// Tu Token de APIperu.dev
+const TOKEN_RENIEC = process.env.TOKEN_RENIEC || 'sk_14781.y2AEO9v8Sx51hWfuNL0dVyDdK082pVsu';
 
 // =====================================================
-// 1. API RENIEC (Consulta de DNI mejorada)
+// 1. API RENIEC
 // =====================================================
 app.get('/api/dni/:numero', async (req, res) => {
     const { numero } = req.params;
@@ -32,19 +37,18 @@ app.get('/api/dni/:numero', async (req, res) => {
         );
 
         if (response.data.success) {
-            // Enviamos la data completa (nombres, apellido_paterno, apellido_materno, nombre_completo)
             res.json(response.data.data);
         } else {
-            res.status(404).json({ success: false, message: 'DNI no encontrado en RENIEC' });
+            res.status(404).json({ success: false, message: 'DNI no encontrado' });
         }
     } catch (error) {
         console.error("Error Reniec:", error.message);
-        res.status(500).json({ success: false, error: 'Error en la consulta externa a RENIEC' });
+        res.status(500).json({ success: false, error: 'Error en la consulta externa' });
     }
 });
 
 // =====================================================
-// 2. CONFIGURACIÓN DE PERFIL
+// 2. ACTUALIZAR PERFIL
 // =====================================================
 app.put('/api/usuarios/actualizar', async (req, res) => {
     const { nombre, email, pass, foto, telf, dni } = req.body;
@@ -57,17 +61,12 @@ app.put('/api/usuarios/actualizar', async (req, res) => {
         );
 
         if (result.rowCount > 0) {
-            res.json({ 
-                success: true, 
-                message: "Perfil actualizado correctamente", 
-                user: result.rows[0] 
-            });
+            res.json({ success: true, user: result.rows[0] });
         } else {
             res.status(404).json({ success: false, message: "Usuario no encontrado" });
         }
     } catch (err) {
-        console.error("Error al actualizar perfil:", err.message);
-        res.status(500).send("Error en el servidor: " + err.message);
+        res.status(500).send("Error: " + err.message);
     }
 });
 
@@ -91,26 +90,18 @@ app.post('/api/login', async (req, res) => {
                 dni: result.rows[0].dni
             });
         } else {
-            res.status(401).json({
-                success: false,
-                message: 'Correo o contraseña incorrectos'
-            });
+            res.status(401).json({ success: false, message: 'Credenciales incorrectas' });
         }
     } catch (err) {
-        res.status(500).send("Error en el servidor: " + err.message);
+        res.status(500).send(err.message);
     }
 });
 
 // =====================================================
-// 4. REGISTRAR PERSONAL
+// 4. PERSONAL Y ASISTENCIA (Rutas resumidas)
 // =====================================================
 app.post('/api/personal', async (req, res) => {
     const { dni, nombres, telefono, id_cargo, pago_semanal, area } = req.body;
-
-    if (!dni || !nombres || !pago_semanal) {
-        return res.status(400).json({ error: "Faltan datos obligatorios" });
-    }
-
     try {
         const result = await pool.query(
             `INSERT INTO personal (dni, nombres_completos, telefono, id_cargo, pago_semanal_base, area)
@@ -118,65 +109,35 @@ app.post('/api/personal', async (req, res) => {
             [dni, nombres, telefono || null, id_cargo || 1, pago_semanal, area]
         );
         res.status(201).json(result.rows[0]);
-    } catch (err) {
-        console.error("Error BD:", err.message);
-        res.status(500).send("Error al insertar: " + err.message);
-    }
+    } catch (err) { res.status(500).send(err.message); }
 });
 
-// =====================================================
-// 5. OBTENER TODO EL PERSONAL
-// =====================================================
 app.get('/api/personal', async (req, res) => {
     try {
         const result = await pool.query(`SELECT * FROM personal ORDER BY id DESC`);
         res.json(result.rows);
-    } catch (err) {
-        res.status(500).send(err.message);
-    }
+    } catch (err) { res.status(500).send(err.message); }
 });
 
-// =====================================================
-// 6. ELIMINAR PERSONAL
-// =====================================================
 app.delete('/api/personal/:id', async (req, res) => {
-    const { id } = req.params;
     try {
-        const result = await pool.query('DELETE FROM personal WHERE id = $1', [id]);
-        if (result.rowCount === 0) return res.status(404).json({ message: "No encontrado" });
-        res.json({ success: true, message: 'Eliminado' });
-    } catch (err) {
-        res.status(500).send(err.message);
-    }
+        await pool.query('DELETE FROM personal WHERE id = $1', [req.params.id]);
+        res.json({ success: true });
+    } catch (err) { res.status(500).send(err.message); }
 });
 
-// =====================================================
-// 7. ASISTENCIA
-// =====================================================
 app.post('/api/asistencia', async (req, res) => {
     const { id_personal, tipo } = req.body;
     try {
         if (tipo === 'entrada') {
-            await pool.query(
-                `INSERT INTO asistencia (id_personal, hora_entrada, fecha) VALUES ($1, NOW(), CURRENT_DATE)`,
-                [id_personal]
-            );
+            await pool.query(`INSERT INTO asistencia (id_personal, hora_entrada, fecha) VALUES ($1, NOW(), CURRENT_DATE)`, [id_personal]);
         } else {
-            await pool.query(
-                `UPDATE asistencia SET hora_salida = NOW() 
-                 WHERE id_personal = $1 AND hora_salida IS NULL AND fecha = CURRENT_DATE`,
-                [id_personal]
-            );
+            await pool.query(`UPDATE asistencia SET hora_salida = NOW() WHERE id_personal = $1 AND hora_salida IS NULL AND fecha = CURRENT_DATE`, [id_personal]);
         }
         res.json({ success: true });
-    } catch (err) {
-        res.status(500).send(err.message);
-    }
+    } catch (err) { res.status(500).send(err.message); }
 });
 
-// =====================================================
-// 8. LISTAR ASISTENCIAS
-// =====================================================
 app.get('/api/asistencia', async (req, res) => {
     try {
         const result = await pool.query(`
@@ -186,13 +147,19 @@ app.get('/api/asistencia', async (req, res) => {
             ORDER BY a.fecha DESC, a.hora_entrada DESC
         `);
         res.json(result.rows);
-    } catch (err) {
-        res.status(500).send(err.message);
-    }
+    } catch (err) { res.status(500).send(err.message); }
 });
 
-// Iniciar Servidor
-const PORT = 3000;
+// =====================================================
+// RUTA FINAL PARA EL FRONTEND
+// =====================================================
+// Esto hace que si escribes una ruta que no existe, te mande al index.html
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/index.html'));
+});
+
+// Iniciar Servidor con puerto dinámico
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
+    console.log(`🚀 Servidor funcionando en el puerto: ${PORT}`);
 });
