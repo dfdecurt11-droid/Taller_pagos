@@ -197,10 +197,10 @@
         <div class="nav-item" onclick="window.location.href='asistencia.html'"><i class="fa-solid fa-calendar-check"></i> Asistencia</div>
     </div>
 
-        <div class="top-bar">
+        <div class="top-bar" style="position: relative; z-index: 10;">
             <div class="admin-profile">
-                <!-- AQUÍ CAMBIAS EL SRC POR TU NUEVA IMAGEN -->
-                <img src="URL_DE_TU_NUEVA_IMAGEN_AQUI" class="admin-photo" id="header-avatar">
+                <!-- Reemplaza el link de abajo por tu foto -->
+                <img src="https://png.pngtree.com/png-clipart/20190611/original/pngtree-work-in-the-tailor-png-image_2984813.jpg" class="admin-photo" id="header-avatar">
                 <div class="admin-info">
                     <h4 id="header-name">Sandra Bendezu</h4>
                     <small><i class="fa-solid fa-circle-check" style="color:var(--success)"></i> Administradora Principal</small>
@@ -352,11 +352,17 @@
 
         function cargarDesdeLocalStorage() {
             const sessionData = localStorage.getItem('taller_admin');
+            
+            // Si hay datos de sesión, actualiza. Si no, se queda lo que pusiste en el HTML
             if(sessionData) {
                 const admin = JSON.parse(sessionData);
-                document.getElementById('header-name').innerText = admin.nombre;
-                if(admin.foto && admin.foto !== "null") document.getElementById('header-avatar').src = admin.foto;
+                if(admin.nombre) document.getElementById('header-name').innerText = admin.nombre;
+                // Solo cambia la foto si el administrador tiene una guardada
+                if(admin.foto && admin.foto !== "null" && admin.foto !== "") {
+                    document.getElementById('header-avatar').src = admin.foto;
+                }
             }
+
             const tGuardados = localStorage.getItem('taller_trabajadores');
             const pGuardado = localStorage.getItem('taller_presupuesto');
             if (tGuardados) trabajadores = JSON.parse(tGuardados);
