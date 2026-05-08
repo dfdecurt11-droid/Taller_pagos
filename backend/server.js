@@ -6,11 +6,18 @@ const axios = require('axios');
 const path = require('path');
 
 const app = express();
+
+// =====================================================
+// CONFIGURACIÓN DE MIDDLEWARES
+// =====================================================
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
-// Token de APIperu.dev desde variables de entorno
+// Token de APIperu.dev (debe estar configurado en Render)
 const TOKEN_RENIEC = process.env.TOKEN_RENIEC;
+if (!TOKEN_RENIEC) {
+  console.warn("⚠️ TOKEN_RENIEC no está configurado en Render. La API de DNI fallará.");
+}
 
 // =====================================================
 // 1. API RENIEC
@@ -31,6 +38,7 @@ app.get('/api/dni/:numero', async (req, res) => {
       res.status(404).json({ success: false, message: 'DNI no encontrado' });
     }
   } catch (error) {
+    console.error("❌ Error en consulta DNI:", error.message);
     res.status(500).json({ success: false, error: 'Error en la consulta' });
   }
 });
