@@ -447,90 +447,100 @@
         }
 
         function pdfIndividual(id) {
-            const t = trabajadores.find(x => x.id === id);
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            
-            const pagoHora = t.sueldoBase / 62;
+        const t = trabajadores.find(x => x.id === id);
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        const pagoHora = t.sueldoBase / 62;
+        const hrsAcum = t.horasAcumuladas || 0;
+        const hrsTotales = Math.floor(hrsAcum);
+        const minsTotales = Math.round((hrsAcum - hrsTotales) * 60);
+        const ganadoTotal = t.montoAPagar || 0;
 
-            doc.setFillColor(15, 23, 42); 
-            doc.rect(0, 0, 210, 40, 'F');
-            doc.setTextColor(255, 255, 255);
-            doc.setFontSize(18);
-            doc.text("REPORTE INDIVIDUAL DE TRABAJADOR", 105, 20, {align: 'center'});
-            doc.setFontSize(10);
-            doc.text(`TALLER | Fecha: ${new Date().toLocaleDateString()}`, 105, 30, {align: 'center'});
+        doc.setFillColor(15, 23, 42); 
+        doc.rect(0, 0, 210, 40, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(18);
+        doc.text("REPORTE INDIVIDUAL DE TRABAJADOR", 105, 20, {align: 'center'});
+        doc.setFontSize(10);
+        doc.text(`TALLER | Fecha: ${new Date().toLocaleDateString()}`, 105, 30, {align: 'center'});
 
-            doc.setTextColor(40);
-            doc.setFontSize(11);
-            doc.text(`NOMBRE: ${t.nombre}`, 20, 50);
-            doc.text(`DNI: ${t.dni}`, 20, 57);
-            doc.text(`CELULAR: ${t.telf || 'No registrado'}`, 20, 64);
-            doc.text(`ÁREA: ${t.area}`, 20, 71);
-            
-            const hrsAcum = t.horasAcumuladas || 0;
-            const hrsTotales = Math.floor(hrsAcum);
-            const minsTotales = Math.round((hrsAcum - hrsTotales) * 60);
-            const ganadoTotal = t.montoAPagar || 0;
+        doc.setTextColor(40);
+        doc.setFontSize(11);
+        doc.text(`NOMBRE: ${t.nombre}`, 20, 50);
+        doc.text(`DNI: ${t.dni}`, 20, 57);
+        doc.text(`CELULAR: ${t.telf || 'No registrado'}`, 20, 64);
+        doc.text(`ÁREA: ${t.area}`, 20, 71);
+        
+        doc.text(`SUELDO BASE: S/ ${t.sueldoBase.toFixed(2)}`, 140, 50);
+        doc.text(`PAGO POR HORA: S/ ${pagoHora.toFixed(2)}`, 140, 57);
+        doc.text(`HORAS TOTALES: ${hrsTotales}h ${minsTotales}m`, 140, 64);
+        doc.setFont(undefined, 'bold');
+        doc.text(`MONTO A PAGAR: S/ ${ganadoTotal.toFixed(2)}`, 140, 71);
+        doc.setFont(undefined, 'normal');
 
-            doc.text(`SUELDO BASE: S/ ${t.sueldoBase.toFixed(2)}`, 140, 50);
-            doc.text(`PAGO POR HORA: S/ ${pagoHora.toFixed(2)}`, 140, 57);
-            doc.text(`HORAS TOTALES: ${hrsTotales}h ${minsTotales}m`, 140, 64);
-            doc.setFont(undefined, 'bold');
-            doc.text(`MONTO A PAGAR: S/ ${ganadoTotal.toFixed(2)}`, 140, 71);
-            doc.setFont(undefined, 'normal');
-
-            doc.autoTable({
-                startY: 85,
-                head: [['N°', 'Fecha', 'Entrada', 'Salida', 'Horas', 'Monto']],
-                body: (t.historial || []).map((h, i) => [
+        doc.autoTable({
+            startY: 85,
+            head: [['N°', 'Fecha', 'Entrada', 'Salida', 'Horas', 'Monto']],
+            body: (t.historial || []).map((h, i) => {
+                // Calculamos las horas de este registro específico (minutos / 60)
+                const horasDeEsteRegistro = h.minutos / 60;
+                const montoDeEsteRegistro = horasDeEsteRegistro * pagoHora;
+                
+                return [
                     i + 1, 
                     h.fecha, 
                     h.entrada, 
                     h.salida, 
                     `${Math.floor(h.minutos/60)}h ${h.minutos%60}m`, 
-                    `S/ ${(h.monto || (h.minutos/60 * pagoHora)).toFixed(2)}`
-                ]),
-                theme: 'striped',
-                headStyles: { fillColor: [37, 99, 235] }
-            });
+                    `S/ ${montoDeEsteRegistro.toFixed(2)}`
+                ];
+            }),
+            theme: 'striped',
+            headStyles: { fillColor: [37, 99, 235] }
+        });
 
-            doc.save(`Reporte_${t.nombre}.pdf`);
-        }
+        doc.save(`Reporte_${t.nombre}.pdf`);
+    }
 
         function generarReporteSemanal() {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            
-            doc.setFillColor(37, 99, 235);
-            doc.rect(0, 0, 210, 45, 'F');
-            doc.setTextColor(255, 255, 255);
-            doc.setFontSize(20);
-            doc.text("PLANILLA GENERAL DE PAGOS", 105, 20, { align: 'center' });
-            doc.setFontSize(12);
-            doc.text("TALLER DE SASTRERIA", 105, 30, { align: 'center' });
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        doc.setFillColor(37, 99, 235);
+        doc.rect(0, 0, 210, 45, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(20);
+        doc.text("PLANILLA GENERAL DE PAGOS", 105, 20, { align: 'center' });
+        doc.setFontSize(12);
+        doc.text("TALLER DE SASTRERIA", 105, 30, { align: 'center' });
 
-            const data = trabajadores.map((t, i) => [
+        const data = trabajadores.map((t, i) => {
+            const hrsAcum = t.horasAcumuladas || 0;
+            const hrs = Math.floor(hrsAcum);
+            const mins = Math.round((hrsAcum - hrs) * 60);
+            
+            return [
                 i + 1, 
                 t.nombre, 
                 t.dni, 
                 t.area, 
                 `S/ ${(t.sueldoBase / 62).toFixed(2)}`,
-                `${Math.floor(t.horasAcumuladas || 0)}h`,
+                `${hrs}h ${mins}m`, // Formato corregido aquí
                 `S/ ${(t.montoAPagar || 0).toFixed(2)}`
-            ]);
+            ];
+        });
 
-            doc.autoTable({ 
-                startY: 55, 
-                head: [['ID', 'Nombre Completo', 'DNI', 'Área', 'P/H', 'Hrs.', 'Total a Pagar']], 
-                body: data,
-                styles: { fontSize: 8, cellPadding: 3 },
-                headStyles: { fillColor: [15, 23, 42] }
-            });
-            
-            doc.save("Planilla_General_Taller.pdf");
-        }
-
+        doc.autoTable({ 
+            startY: 55, 
+            head: [['ID', 'Nombre Completo', 'DNI', 'Área', 'P/H', 'Hrs.', 'Total a Pagar']], 
+            body: data,
+            styles: { fontSize: 8, cellPadding: 3 },
+            headStyles: { fillColor: [15, 23, 42] }
+        });
+        
+        doc.save("Planilla_General_Taller.pdf");
+    }
         function abrirPago(id, n, m) {
             document.getElementById('txtPagoSub').innerText = `Se liquidará un total de S/ ${m.toFixed(2)} a favor de ${n}.`;
             openModal('modalPago');
