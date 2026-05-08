@@ -222,7 +222,6 @@
                             <th>Área</th>
                             <th>Última Entrada</th>
                             <th>Última Salida</th>
-                            <th>Pago Generado (Hoy)</th>
                             <th style="text-align:right">Marcación</th>
                         </tr>
                     </thead>
@@ -310,7 +309,6 @@
             const lista = trabajadores.filter(t => t.nombre.toLowerCase().includes(filtro.toLowerCase()));
 
             cuerpo.innerHTML = lista.map(t => {
-                const pagoHoy = t.montoAPagar ? t.montoAPagar.toFixed(2) : "0.00";
                 const enTurno = t.horaEntradaTemp && !t.horaSalidaTemp;
 
                 return `
@@ -319,7 +317,6 @@
                     <td><span style="background:#f1f5f9; padding:4px 8px; border-radius:6px; font-size:0.8rem;">${t.area || 'Taller'}</span></td>
                     <td>${formatFechaHora(t.horaEntradaTemp)}</td>
                     <td>${formatFechaHora(t.horaSalidaTemp)}</td>
-                    <td><span style="color:#10b981; font-weight:700;">S/ ${pagoHoy}</span></td>
                     <td style="text-align:right">
                         <button class="btn-marc btn-in" onclick="realizarMarcado(${t.id}, 'entrada')" ${enTurno ? 'disabled style="opacity:0.5; cursor:not-allowed"' : ''}>Entrada</button>
                         <button class="btn-marc btn-out" onclick="realizarMarcado(${t.id}, 'salida')" ${!enTurno ? 'disabled style="opacity:0.5; cursor:not-allowed"' : ''}>Salida</button>
