@@ -1,9 +1,10 @@
-// backend/db.js
-const { Pool } = require("pg");
+const { Pool } = require('pg');
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false } // Render requiere SSL
+    // Configuración local explícita usando tus credenciales actuales
+    connectionString: process.env.DATABASE_URL || 'postgresql://postgres:database@localhost:5432/taller-sandra',
+    // Manejo automático de certificados SSL solo si estás desplegado en Render
+    ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
 });
 
 module.exports = pool;

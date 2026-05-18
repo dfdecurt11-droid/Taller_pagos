@@ -17,36 +17,7 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 const TOKEN_RENIEC = process.env.TOKEN_RENIEC;
 
 // =====================================================
-// 1. ENDPOINT DE AUTENTICACIÓN (LOGIN)
-// =====================================================
-app.post('/api/login', async (req, res) => {
-    const { correo, password } = req.body;
-
-    try {
-        const result = await pool.query(
-            'SELECT id, nombre, correo, foto_url FROM usuarios WHERE correo = $1 AND password = $2', 
-            [correo, password]
-        );
-
-        if (result.rows.length > 0) {
-            const user = result.rows[0];
-            res.json({
-                success: true,
-                user: user.nombre,
-                foto: user.foto_url || 'https://i.imgur.com/8Km9tLL.png',
-                message: 'Login exitoso'
-            });
-        } else {
-            res.status(401).json({ success: false, message: 'Correo o contraseña incorrectos' });
-        }
-    } catch (error) {
-        console.error("❌ Error en Login:", error.message);
-        res.status(500).json({ success: false, message: 'Error interno del servidor' });
-    }
-});
-
-// =====================================================
-// 2. CONSULTA API RENIEC
+// 1. CONSULTA API RENIEC
 // =====================================================
 app.get('/api/dni/:numero', async (req, res) => {
     const { numero } = req.params;
@@ -69,13 +40,13 @@ app.get('/api/dni/:numero', async (req, res) => {
 });
 
 // =====================================================
-// 3. API CONTROL DE TRABAJADORES Y PLANILLA (CRUD + BD)
+// 2. API CONTROL DE TRABAJADORES Y PLANILLA (CRUD + BD)
 // =====================================================
 
-// Obtener todos los trabajadores con sus horas acumuladas calculadas
+// Obtener todos los trabajadores mapeando snake_case a camelCase para compatibilidad
 app.get('/api/trabajadores', async (req, res) => {
     try {
-        const result = await pool.query('SELECT * FROM trabajadores ORDER BY nombre ASC');
+        const result = await pool.query('SELECT id, nombre, dni, telf, area, sueldo_base AS "sueldoBase", horas_acumuladas AS "horasAcumuladas", hora_entrada_temp AS "horaEntradaTemp", hora_salida_temp AS "horaSalidaTemp", monto_a_pagar AS "montoAPagar", historial FROM trabajadores ORDER BY nombre ASC');
         res.json(result.rows);
     } catch (error) {
         console.error("❌ Error al traer trabajadores:", error.message);
@@ -83,28 +54,54 @@ app.get('/api/trabajadores', async (req, res) => {
     }
 });
 
-// Registrar o Editar Trabajador
+// Registrar Nuevo Trabajador (Únicamente POST para inserción limpia)
 app.post('/api/trabajadores', async (req, res) => {
-    const { id, nombre, dni, telf, area, sueldoBase } = req.body;
+    const { nombre, dni, telf, area, sueldoBase } = req.body;
     try {
-        if (id) {
-            // Modo Edición
-            await pool.query(
-                'UPDATE trabajadores SET nombre = $1, dni = $2, telf = $3, area = $4, sueldo_base = $5 WHERE id = $6',
-                [nombre.toUpperCase(), dni, telf, area, sueldoBase, id]
-            );
-            res.json({ success: true, message: 'Trabajador actualizado' });
-        } else {
-            // Modo Nuevo Registro
-            await pool.query(
-                'INSERT INTO trabajadores (nombre, dni, telf, area, sueldo_base, horas_acumuladas) VALUES ($1, $2, $3, $4, $5, 0)',
-                [nombre.toUpperCase(), dni, telf, area, sueldoBase]
-            );
-            res.json({ success: true, message: 'Trabajador registrado con éxito' });
-        }
+        await pool.query(
+            'INSERT INTO trabajadores (nombre, dni, telf, area, sueldo_base, horas_acumuladas, monto_a_pagar, historial) VALUES ($1, $2, $3, $4, $5, 0, 0, \'[]\')',
+            [nombre.toUpperCase(), dni, telf, area, sueldoBase]
+        );
+        res.json({ success: true, message: 'Trabajador registrado con éxito' });
     } catch (error) {
         console.error("❌ Error al guardar trabajador:", error.message);
         res.status(500).json({ success: false, message: 'Error al procesar la solicitud' });
+    }
+});
+
+// Actualizar perfil o guardar marcaciones de asistencia (PUT)
+app.put('/api/trabajadores/:id', async (req, res) => {
+    const { id } = req.params;
+    const { nombre, dni, telf, area, sueldoBase, horasAcumuladas, horaEntradaTemp, horaSalidaTemp, montoAPagar, historial } = req.body;
+
+    try {
+        // Validamos si viene una actualización completa de asistencia o solo edición de formulario básico
+        if (horaEntradaTemp !== undefined || horaSalidaTemp !== undefined || horasAcumuladas !== undefined) {
+            // Flujo de marcación de asistencia desde asistencia.html
+            await pool.query(
+                `UPDATE trabajadores 
+                 SET hora_entrada_temp = $1, 
+                     hora_salida_temp = $2, 
+                     horas_acumuladas = $3, 
+                     monto_a_pagar = $4,
+                     historial = $5
+                 WHERE id = $6`,
+                [horaEntradaTemp, horaSalidaTemp, horasAcumuladas, montoAPagar, JSON.stringify(historial || []), id]
+            );
+            return res.json({ success: true, message: 'Marcación de asistencia guardada' });
+        } else {
+            // Flujo normal de edición de datos administrativos
+            await pool.query(
+                `UPDATE trabajadores 
+                 SET nombre = $1, dni = $2, telf = $3, area = $4, sueldo_base = $5 
+                 WHERE id = $6`,
+                [nombre.toUpperCase(), dni, telf, area, sueldoBase, id]
+            );
+            return res.json({ success: true, message: 'Datos del trabajador actualizados' });
+        }
+    } catch (error) {
+        console.error("❌ Error en PUT trabajadores:", error.message);
+        res.status(500).json({ success: false, message: 'Error al actualizar registro en base de datos' });
     }
 });
 
@@ -120,23 +117,20 @@ app.delete('/api/trabajadores/:id', async (req, res) => {
     }
 });
 
-// Procesar Pago Semanal (Maneja la transacción lógica del dinero)
+// Procesar Pago Semanal y Reiniciar métricas
 app.post('/api/trabajadores/pagar', async (req, res) => {
-    const { id, monto } = req.body;
+    const { id } = req.body;
     try {
-        // Iniciamos una transacción SQL para asegurar consistencia
         await pool.query('BEGIN');
 
-        // 1. Limpiamos las horas acumuladas del trabajador tras el cobro exitoso
+        // Limpiamos tanto las horas acumuladas como el monto pendiente tras cobrar con éxito
         await pool.query(
-            'UPDATE trabajadores SET horas_acumuladas = 0 WHERE id = $1',
+            'UPDATE trabajadores SET horas_acumuladas = 0, monto_a_pagar = 0, hora_entrada_temp = NULL, hora_salida_temp = NULL WHERE id = $1',
             [id]
         );
 
-        // 2. Aquí podrías registrar el movimiento en una tabla "historial_pagos" si lo deseas
-
         await pool.query('COMMIT');
-        res.json({ success: true, message: 'Pago procesado en base de datos' });
+        res.json({ success: true, message: 'Pago procesado y horas reiniciadas' });
     } catch (error) {
         await pool.query('ROLLBACK');
         console.error("❌ Error al procesar pago en BD:", error.message);
@@ -145,30 +139,26 @@ app.post('/api/trabajadores/pagar', async (req, res) => {
 });
 
 // =====================================================
-// 4. CONFIGURACIÓN DE FRONTEND Y RUTAS DE CONTROL
+// 3. CONFIGURACIÓN DE FRONTEND Y RUTAS DE CONTROL DIRECTO
 // =====================================================
-
-// Servir archivos estáticos del frontend (HTML, CSS, JS)
 app.use(express.static(path.resolve(__dirname, '../frontend')));
 
-// Ruta por defecto: Login
+// Redirección directa al Dashboard principal sin pasar por login
 app.get('/', (req, res) => {
-    res.sendFile(path.resolve(__dirname, '..', 'frontend', 'login.html'));
+    res.sendFile(path.resolve(__dirname, '..', 'frontend', 'index.html'));
 });
 
-// Servir la interfaz del Dashboard principal
 app.get('/dashboard', (req, res) => {
     res.sendFile(path.resolve(__dirname, '..', 'frontend', 'index.html'));
 });
 
-// Servir la interfaz de Asistencia
 app.get('/asistencia', (req, res) => {
     res.sendFile(path.resolve(__dirname, '..', 'frontend', 'asistencia.html'));
 });
 
-// Captura cualquier otra ruta no definida (Evita el error 'Cannot GET')
+// Captura cualquier otra ruta no definida mandándola al Dashboard
 app.get('*', (req, res) => {
-    res.sendFile(path.resolve(__dirname, '..', 'frontend', 'login.html'));
+    res.sendFile(path.resolve(__dirname, '..', 'frontend', 'index.html'));
 });
 
 // =====================================================

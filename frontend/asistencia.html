@@ -207,14 +207,12 @@
             th { padding: 12px 10px; font-size: 0.7rem; }
             .btn-marc { padding: 8px 12px; font-size: 0.75rem; }
             
-            /* Ocultar columnas secundarias en pantallas muy chicas para privilegiar espacio */
             .col-hide-mobile { display: none; }
         }
     </style>
 </head>
 <body>
 
-    <!-- Botón hamburguesa y overlay para móviles -->
     <button class="menu-toggle" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
     <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
 
@@ -259,7 +257,13 @@
                             <th style="text-align:right">Marcación</th>
                         </tr>
                     </thead>
-                    <tbody id="tablaAsistencia"></tbody>
+                    <tbody id="tablaAsistencia">
+                        <tr>
+                            <td colspan="5" style="text-align:center; padding:30px; color:#64748b;">
+                                <i class="fa-solid fa-spinner fa-spin"></i> Cargando personal desde el servidor...
+                            </td>
+                        </tr>
+                    </tbody>
                 </table>
             </div>
         </div>
@@ -300,10 +304,11 @@
                     trabajadores = await response.json();
                     renderTable();
                 } else {
-                    console.error("Error al obtener los datos del servidor");
+                    document.getElementById('tablaAsistencia').innerHTML = `<tr><td colspan="5" style="text-align:center; padding:30px; color:#dc2626;">Error al obtener los datos del servidor</td></tr>`;
                 }
             } catch (error) {
                 console.error("Error de red o conexión:", error);
+                document.getElementById('tablaAsistencia').innerHTML = `<tr><td colspan="5" style="text-align:center; padding:30px; color:#dc2626;">Error de red. Verifique la conexión con el backend.</td></tr>`;
             }
         }
 
@@ -315,10 +320,11 @@
                     body: JSON.stringify(trabajador)
                 });
                 if (!response.ok) {
-                    console.error("No se pudo actualizar el registro en el backend");
+                    showToast("⚠️ Error al sincronizar con el servidor remoto");
                 }
             } catch (error) {
                 console.error("Error al sincronizar con el servidor:", error);
+                showToast("⚠️ Error de red. No se pudo guardar la marcación.");
             }
         }
 
@@ -326,7 +332,8 @@
             const ahora = new Date();
             ahora.setSeconds(0, 0); 
             
-            const idx = trabajadores.findIndex(t => t.id === id);
+            // Corrección de comparación estricta de IDs transformándolos a String por seguridad
+            const idx = trabajadores.findIndex(t => String(t.id) === String(id));
             if (idx === -1) return;
 
             if (tipo === 'entrada') {
@@ -354,7 +361,7 @@
 
                 if(!trabajadores[idx].historial) trabajadores[idx].historial = [];
                 trabajadores[idx].historial.push({
-                    fecha: ahora.toLocaleDateString(),
+                    fecha: ahora.toLocaleDateString('es-PE'),
                     entrada: entrada.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                     salida: ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                     minutos: Math.round(horasTrabajadas * 60)
@@ -363,8 +370,9 @@
                 showToast(`🚀 Salida: ${trabajadores[idx].nombre}. Pago calculado.`);
             }
             
-            await guardarEnServidor(trabajadores[idx]);
+            // Sincroniza y fuerza el re-renderizado inmediato
             renderTable();
+            await guardarEnServidor(trabajadores[idx]);
         }
 
         function renderTable(filtro = "") {
@@ -377,17 +385,18 @@
             }
 
             cuerpo.innerHTML = lista.map(t => {
+                // Validación robusta para determinar si se encuentra trabajando actualmente
                 const enTurno = t.horaEntradaTemp && !t.horaSalidaTemp;
 
                 return `
-                <tr style="${enTurno ? 'background: #f8fafc' : ''}">
+                <tr style="${enTurno ? 'background: #f0fdf4' : ''}">
                     <td><b>${t.nombre}</b></td>
                     <td><span style="background:#f1f5f9; padding:4px 8px; border-radius:6px; font-size:0.8rem;">${t.area || 'Taller'}</span></td>
                     <td class="col-hide-mobile">${formatFechaHora(t.horaEntradaTemp)}</td>
                     <td class="col-hide-mobile">${formatFechaHora(t.horaSalidaTemp)}</td>
                     <td style="text-align:right; white-space: nowrap;">
-                        <button class="btn-marc btn-in" onclick="realizarMarcado(${t.id}, 'entrada')" ${enTurno ? 'disabled style="opacity:0.5; cursor:not-allowed"' : ''}>Entrada</button>
-                        <button class="btn-marc btn-out" onclick="realizarMarcado(${t.id}, 'salida')" ${!enTurno ? 'disabled style="opacity:0.5; cursor:not-allowed"' : ''}>Salida</button>
+                        <button class="btn-marc btn-in" onclick="realizarMarcado('${t.id}', 'entrada')" ${enTurno ? 'disabled style="opacity:0.5; cursor:not-allowed"' : ''}>Entrada</button>
+                        <button class="btn-marc btn-out" onclick="realizarMarcado('${t.id}', 'salida')" ${!enTurno ? 'disabled style="opacity:0.5; cursor:not-allowed"' : ''}>Salida</button>
                     </td>
                 </tr>
                 `;

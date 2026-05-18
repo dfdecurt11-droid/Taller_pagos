@@ -217,11 +217,7 @@
         @media (max-width: 640px) {
             .dashboard-grid { grid-template-columns: 1fr; }
             .modal-content { padding: 1.5rem; margin: 5vh auto; }
-            
-            /* Ocultar datos redundantes en pantallas muy pequeñas para evitar scroll infinito */
             .col-hide-mobile { display: none; }
-            
-            /* Ajuste de botones en tabla */
             td style { text-align: left; }
             .btn-icon { padding: 10px; font-size: 1rem; }
         }
@@ -229,7 +225,6 @@
 </head>
 <body>
 
-    <!-- Botón hamburguesa y overlay para móviles -->
     <button class="menu-toggle" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
     <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
 
@@ -298,7 +293,6 @@
         </div>
     </div>
 
-    <!-- MODAL REGISTRO/EDICIÓN -->
     <div id="modalTrabajador" class="modal">
         <div class="modal-content">
             <div style="text-align: center; margin-bottom: 1.5rem;">
@@ -343,7 +337,6 @@
         </div>
     </div>
 
-    <!-- MODAL ELIMINAR -->
     <div id="modalDespido" class="modal">
         <div class="modal-content" style="text-align: center;">
             <div style="color: var(--danger); font-size: 3rem; margin-bottom: 1rem;"><i class="fa-solid fa-circle-exclamation"></i></div>
@@ -356,7 +349,6 @@
         </div>
     </div>
 
-    <!-- MODAL PAGO -->
     <div id="modalPago" class="modal">
         <div class="modal-content" style="text-align: center;">
             <div style="color: var(--success); font-size: 3rem; margin-bottom: 1rem;"><i class="fa-solid fa-money-bill-transfer"></i></div>
@@ -372,7 +364,6 @@
         </div>
     </div>
 
-    <!-- MODAL DINERO -->
     <div id="modalDinero" class="modal">
         <div class="modal-content" style="text-align: center;">
             <h3>Inyectar Capital</h3>
@@ -390,6 +381,9 @@
     </div>
 
     <script>
+        // Apunta directamente a tu servidor local de Express
+        const API_BASE_URL = "http://localhost:3000";
+
         let presupuesto = 0.00;
         let trabajadores = [];
 
@@ -397,31 +391,53 @@
             document.getElementById('sidebar').classList.toggle('active');
         }
 
-        function guardarEnLocalStorage() {
-            localStorage.setItem('taller_trabajadores', JSON.stringify(trabajadores));
-            localStorage.setItem('taller_presupuesto', presupuesto.toString());
+        function openModal(id) {
+            document.getElementById(id).style.display = 'block';
         }
 
-        function cargarDesdeLocalStorage() {
-            const sessionData = localStorage.getItem('taller_admin');
-            if(sessionData) {
-                const admin = JSON.parse(sessionData);
-                document.getElementById('header-name').innerText = admin.nombre;
-                if(admin.foto && admin.foto !== "null") document.getElementById('header-avatar').src = admin.foto;
-            }
-            const tGuardados = localStorage.getItem('taller_trabajadores');
-            const pGuardado = localStorage.getItem('taller_presupuesto');
-            if (tGuardados) trabajadores = JSON.parse(tGuardados);
-            if (pGuardado) presupuesto = parseFloat(pGuardado);
-            document.getElementById('valPresupuesto').innerText = presupuesto.toFixed(2);
-            render();
+        function closeModal(id) {
+            document.getElementById(id).style.display = 'none';
         }
 
-        window.addEventListener('storage', (e) => {
-            if (e.key === 'taller_trabajadores' || e.key === 'taller_presupuesto') {
-                cargarDesdeLocalStorage();
+        function showToast(msg) {
+            const toast = document.getElementById('notif');
+            document.getElementById('notifMsg').innerText = msg;
+            toast.add('show');
+            setTimeout(() => toast.remove('show'), 3500);
+        }
+
+        function abrirModalTrabajador() {
+            document.getElementById('editId').value = "";
+            document.getElementById('tituloModalTrabajador').innerText = "Registro de Personal";
+            document.getElementById('tNombre').value = "";
+            document.getElementById('tDni').value = "";
+            document.getElementById('tTelf').value = "";
+            document.getElementById('tSueldoBase').value = "";
+            openModal('modalTrabajador');
+        }
+
+        // Carga automática inicial al abrir la página
+        window.addEventListener('DOMContentLoaded', cargarDatosServidor);
+
+        async function cargarDatosServidor() {
+            try {
+                // Petición GET para obtener trabajadores desde PostgreSQL
+                const resTrabajadores = await fetch(`${API_BASE_URL}/api/trabajadores`);
+                if (resTrabajadores.ok) {
+                    trabajadores = await resTrabajadores.json();
+                }
+
+                // Obtener presupuesto local seguro
+                const pGuardado = localStorage.getItem('taller_presupuesto');
+                if (pGuardado) presupuesto = parseFloat(pGuardado);
+
+                document.getElementById('valPresupuesto').innerText = presupuesto.toFixed(2);
+                render();
+            } catch (error) {
+                console.error("Error al conectar con la API local:", error);
+                showToast("Error de conexión con el servidor");
             }
-        });
+        }
 
         function render() {
             const cuerpo = document.getElementById('tablaCuerpo');
@@ -433,18 +449,16 @@
             }
 
             cuerpo.innerHTML = trabajadores.map(t => {
-                const sueldoBase = t.sueldoBase || 0;
+                const sueldoBase = parseFloat(t.sueldoBase || t.sueldo_base || 0);
                 const pagoPorHora = sueldoBase / 62;
-                const horasAcum = t.horasAcumuladas || 0;
+                const horasAcum = parseFloat(t.horasAcumuladas || t.horas_acumuladas || 0);
                 const montoPagar = pagoPorHora * horasAcum;
                 
                 t.montoAPagar = montoPagar;
 
                 const hrs = Math.floor(horasAcum);
                 const mins = Math.round((horasAcum - hrs) * 60);
-
-                // Forzamos el ID a Number para pasarlo seguro en las funciones inline de los botones
-                const seguroId = Number(t.id);
+                const seguroId = t.id; 
 
                 return `<tr>
                     <td>
@@ -459,16 +473,16 @@
                     <td><i class="fa-regular fa-clock"></i> ${hrs}h ${mins}m</td>
                     <td><b style="color:var(--success); font-size:1rem;">S/ ${montoPagar.toFixed(2)}</b></td>
                     <td style="text-align: right; white-space: nowrap;">
-                        <button class="btn btn-outline btn-icon" title="Pagar" onclick="abrirPago(${seguroId}, '${t.nombre}', ${montoPagar})"><i class="fa-solid fa-hand-holding-dollar" style="color:var(--success)"></i></button>
-                        <button class="btn btn-outline btn-icon" title="Editar" onclick="editarPersonal(${seguroId})"><i class="fa-solid fa-user-pen" style="color:var(--accent)"></i></button>
-                        <button class="btn btn-outline btn-icon" title="PDF" onclick="pdfIndividual(${seguroId})"><i class="fa-solid fa-file-pdf"></i></button>
-                        <button class="btn btn-outline btn-icon" title="Eliminar" onclick="abrirDespido(${seguroId}, '${t.nombre}')"><i class="fa-solid fa-trash-can" style="color:var(--danger)"></i></button>
+                        <button class="btn btn-outline btn-icon" title="Pagar" onclick="abrirPago('${seguroId}', '${t.nombre}', ${montoPagar})"><i class="fa-solid fa-hand-holding-dollar" style="color:var(--success)"></i></button>
+                        <button class="btn btn-outline btn-icon" title="Editar" onclick="editarPersonal('${seguroId}')"><i class="fa-solid fa-user-pen" style="color:var(--accent)"></i></button>
+                        <button class="btn btn-outline btn-icon" title="PDF" onclick="pdfIndividual('${seguroId}')"><i class="fa-solid fa-file-pdf"></i></button>
+                        <button class="btn btn-outline btn-icon" title="Eliminar" onclick="abrirDespido('${seguroId}', '${t.nombre}')"><i class="fa-solid fa-trash-can" style="color:var(--danger)"></i></button>
                     </td>
                 </tr>`;
             }).join('');
         }
 
-        function guardarTrabajador() {
+        async function guardarTrabajador() {
             const idForm = document.getElementById('editId').value;
             const nombre = document.getElementById('tNombre').value.toUpperCase().trim();
             const dni = document.getElementById('tDni').value.trim();
@@ -478,38 +492,127 @@
 
             if(!nombre || !dni) { showToast("Nombre y DNI requeridos"); return; }
 
-            if(idForm) {
-                const numId = Number(idForm);
-                const idx = trabajadores.findIndex(x => Number(x.id) === numId);
-                if (idx !== -1) {
-                    trabajadores[idx] = { ...trabajadores[idx], nombre, dni, telf, area, sueldoBase };
+            const datosTrabajador = { nombre, dni, telf, area, sueldoBase };
+
+            try {
+                let url = `${API_BASE_URL}/api/trabajadores`;
+                let metodo = 'POST';
+
+                if(idForm) {
+                    url = `${API_BASE_URL}/api/trabajadores/${idForm}`;
+                    metodo = 'PUT';
                 }
-            } else {
-                trabajadores.push({
-                    id: Date.now(), // ID numérico limpio
-                    nombre, dni, telf, area,
-                    sueldoBase,
-                    horasAcumuladas: 0,
-                    montoAPagar: 0,
-                    historial: [] 
+
+                const respuesta = await fetch(url, {
+                    method: metodo,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(datosTrabajador)
                 });
+
+                if (respuesta.ok) {
+                    closeModal('modalTrabajador');
+                    await cargarDatosServidor();
+                    showToast("Datos sincronizados correctamente");
+                } else {
+                    showToast("Error al guardar en el servidor");
+                }
+            } catch (error) {
+                console.error(error);
+                showToast("Error de red al guardar");
             }
-            guardarEnLocalStorage();
-            closeModal('modalTrabajador');
-            render();
-            showToast("Datos guardados correctamente");
+        }
+
+        function editarPersonal(id) {
+            const t = trabajadores.find(x => x.id == id);
+            if(!t) return;
+            document.getElementById('editId').value = t.id;
+            document.getElementById('tituloModalTrabajador').innerText = "Editar Personal";
+            document.getElementById('tNombre').value = t.nombre;
+            document.getElementById('tDni').value = t.dni;
+            document.getElementById('tTelf').value = t.telf || "";
+            document.getElementById('tArea').value = t.area;
+            document.getElementById('tSueldoBase').value = t.sueldoBase || t.sueldo_base || "";
+            openModal('modalTrabajador');
+        }
+
+        function abrirPago(id, n, m) {
+            document.getElementById('txtPagoSub').innerText = `Se liquidará un total de S/ ${m.toFixed(2)} a favor de ${n}.`;
+            openModal('modalPago');
+            
+            document.getElementById('btnOkPago').onclick = async () => {
+                if(presupuesto >= m) {
+                    try {
+                        // Sincronizado con la ruta POST del body en tu backend actual
+                        const respuesta = await fetch(`${API_BASE_URL}/api/trabajadores/pagar`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ id: id })
+                        });
+
+                        if (respuesta.ok) {
+                            presupuesto -= m;
+                            localStorage.setItem('taller_presupuesto', presupuesto.toString());
+                            closeModal('modalPago'); 
+                            await cargarDatosServidor();
+                            showToast(`Pago de S/ ${m.toFixed(2)} procesado con éxito`);
+                        } else {
+                            showToast("Error al registrar el pago en el servidor");
+                        }
+                    } catch (error) {
+                        console.error(error);
+                        showToast("Error de red al procesar pago");
+                    }
+                } else {
+                    alert("Fondo de caja insuficiente en el presupuesto actual.");
+                }
+            };
+        }
+
+        function abrirDespido(id, n) {
+            document.getElementById('txtPreguntaDespido').innerText = `¿Está seguro de quitar a ${n} del sistema?`;
+            openModal('modalDespido');
+            document.getElementById('btnConfDespido').onclick = async () => {
+                try {
+                    const respuesta = await fetch(`${API_BASE_URL}/api/trabajadores/${id}`, {
+                        method: 'DELETE'
+                    });
+
+                    if (respuesta.ok) {
+                        closeModal('modalDespido'); 
+                        await cargarDatosServidor();
+                        showToast(`Se ha removido a ${n}`);
+                    } else {
+                        showToast("No se pudo eliminar el registro");
+                    }
+                } catch (error) {
+                    console.error(error);
+                    showToast("Error de red al eliminar");
+                }
+            };
+        }
+
+        async function confirmarDinero() {
+            let m = parseFloat(document.getElementById('inputMonto').value || 0);
+            if(m <= 0) return;
+
+            presupuesto += m;
+            localStorage.setItem('taller_presupuesto', presupuesto.toString());
+            document.getElementById('valPresupuesto').innerText = presupuesto.toFixed(2);
+            document.getElementById('inputMonto').value = "";
+            closeModal('modalDinero');
+            showToast("Capital inyectado correctamente");
         }
 
         function pdfIndividual(id) {
-            const numId = Number(id);
-            const t = trabajadores.find(x => Number(x.id) === numId);
+            const t = trabajadores.find(x => x.id == id);
             if (!t) return;
 
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             
-            const pagoHora = t.sueldoBase / 62;
-            const hrsAcum = t.horasAcumuladas || 0;
+            const sueldoBase = parseFloat(t.sueldoBase || t.sueldo_base || 0);
+            const pagoHora = sueldoBase / 62;
+            const hrsAcum = parseFloat(t.horasAcumuladas || t.horas_acumuladas || 0);
             const hrsTotales = Math.floor(hrsAcum);
             const minsTotales = Math.round((hrsAcum - hrsTotales) * 60);
             const ganadoTotal = t.montoAPagar || 0;
@@ -529,7 +632,7 @@
             doc.text(`CELULAR: ${t.telf || 'No registrado'}`, 20, 64);
             doc.text(`ÁREA: ${t.area}`, 20, 71);
             
-            doc.text(`SUELDO BASE: S/ ${t.sueldoBase.toFixed(2)}`, 140, 50);
+            doc.text(`SUELDO BASE: S/ ${sueldoBase.toFixed(2)}`, 140, 50);
             doc.text(`PAGO POR HORA: S/ ${pagoHora.toFixed(2)}`, 140, 57);
             doc.text(`HORAS TOTALES: ${hrsTotales}h ${minsTotales}m`, 140, 64);
             doc.setFont(undefined, 'bold');
@@ -578,7 +681,8 @@
             doc.text("TALLER DE SASTRERIA", 105, 30, { align: 'center' });
 
             const data = trabajadores.map((t, i) => {
-                const hrsAcum = t.horasAcumuladas || 0;
+                const hrsAcum = parseFloat(t.horasAcumuladas || t.horas_acumuladas || 0);
+                const sueldoBase = parseFloat(t.sueldoBase || t.sueldo_base || 0);
                 const hrs = Math.floor(hrsAcum);
                 const mins = Math.round((hrsAcum - hrs) * 60);
                 
@@ -587,7 +691,7 @@
                     t.nombre, 
                     t.dni, 
                     t.area, 
-                    `S/ ${(t.sueldoBase / 62).toFixed(2)}`,
+                    `S/ ${(sueldoBase / 62).toFixed(2)}`,
                     `${hrs}h ${mins}m`,
                     `S/ ${(t.montoAPagar || 0).toFixed(2)}`
                 ];
@@ -603,93 +707,6 @@
             
             doc.save("Planilla_General_Taller.pdf");
         }
-
-        function abrirPago(id, n, m) {
-            document.getElementById('txtPagoSub').innerText = `Se liquidará un total de S/ ${m.toFixed(2)} a favor de ${n}.`;
-            openModal('modalPago');
-            
-            document.getElementById('btnOkPago').onclick = () => {
-                if(presupuesto >= m) {
-                    presupuesto -= m;
-                    document.getElementById('valPresupuesto').innerText = presupuesto.toFixed(2);
-                    
-                    const numId = Number(id);
-                    const t = trabajadores.find(x => Number(x.id) === numId);
-                    if (t) {
-                        t.horasAcumuladas = 0; 
-                        t.montoAPagar = 0; 
-                        t.historial = []; 
-                    }
-                    
-                    guardarEnLocalStorage();
-                    closeModal('modalPago'); 
-                    render();
-                    showToast(`Pago de S/ ${m.toFixed(2)} procesado con éxito`);
-                } else {
-                    alert("Fondo de caja insuficiente en el presupuesto actual.");
-                }
-            };
-        }
-
-        function abrirDespido(id, n) {
-            document.getElementById('txtPreguntaDespido').innerText = `¿Está seguro de quitar a ${n} del sistema?`;
-            openModal('modalDespido');
-            document.getElementById('btnConfDespido').onclick = () => {
-                const numId = Number(id);
-                trabajadores = trabajadores.filter(x => Number(x.id) !== numId);
-                guardarEnLocalStorage();
-                closeModal('modalDespido'); 
-                render();
-                showToast(`Se ha removido a ${n}`);
-            };
-        }
-
-        function confirmarDinero() {
-            let m = parseFloat(document.getElementById('inputMonto').value || 0);
-            if(m <= 0) return;
-            presupuesto += m;
-            guardarEnLocalStorage();
-            document.getElementById('valPresupuesto').innerText = presupuesto.toFixed(2);
-            document.getElementById('inputMonto').value = "";
-            closeModal('modalDinero');
-            showToast("Capital inyectado correctamente");
-        }
-
-        function openModal(id) { document.getElementById(id).style.display = 'block'; }
-        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
-        
-        function showToast(m) { 
-            const t = document.getElementById('notif'); 
-            document.getElementById('notifMsg').innerText = m; 
-            t.classList.add('show'); 
-            setTimeout(() => t.classList.remove('show'), 3000); 
-        }
-
-        function abrirModalTrabajador() {
-            document.getElementById('editId').value = "";
-            document.getElementById('tituloModalTrabajador').innerText = "Registrar Personal";
-            document.getElementById('tDni').value = ""; 
-            document.getElementById('tNombre').value = "";
-            document.getElementById('tTelf').value = ""; 
-            document.getElementById('tSueldoBase').value = "";
-            openModal('modalTrabajador');
-        }
-
-        function editarPersonal(id) {
-            const numId = Number(id);
-            const t = trabajadores.find(x => Number(x.id) === numId);
-            if(!t) return;
-            document.getElementById('editId').value = t.id;
-            document.getElementById('tDni').value = t.dni;
-            document.getElementById('tNombre').value = t.nombre;
-            document.getElementById('tTelf').value = t.telf || '';
-            document.getElementById('tArea').value = t.area;
-            document.getElementById('tSueldoBase').value = t.sueldoBase;
-            document.getElementById('tituloModalTrabajador').innerText = "Editar Personal";
-            openModal('modalTrabajador');
-        }
-
-        window.onload = cargarDesdeLocalStorage;
     </script>
 </body>
 </html>
