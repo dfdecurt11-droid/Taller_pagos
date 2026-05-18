@@ -234,6 +234,9 @@
     <div id="toast" class="toast"></div>
 
     <script>
+        // URL del backend en Render obtenida de tu panel
+        const API_URL = 'https://taller-pagos.onrender.com/api/trabajadores';
+
         let trabajadores = [];
         const SUELDO_BASE = 300;
         const HORAS_SEMANALES = 62;
@@ -253,13 +256,38 @@
             return `<b>${d.toLocaleDateString('es-PE')}</b> <small>|</small> ${d.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit', hour12:true})}`;
         }
 
-        function cargarDatos() {
-            const datos = localStorage.getItem('taller_trabajadores');
-            if (datos) trabajadores = JSON.parse(datos);
-            renderTable();
+        // Cargar los datos directo de la API en lugar del LocalStorage
+        async function cargarDatos() {
+            try {
+                const response = await fetch(API_URL);
+                if (response.ok) {
+                    trabajadores = await response.json();
+                    renderTable();
+                } else {
+                    console.error("Error al obtener los datos del servidor");
+                }
+            } catch (error) {
+                console.error("Error de red o conexión:", error);
+            }
         }
 
-        function realizarMarcado(id, tipo) {
+        // Guardar el estado del trabajador modificado en el backend
+        async function guardarEnServidor(trabajador) {
+            try {
+                const response = await fetch(`${API_URL}/${trabajador.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(trabajador)
+                });
+                if (!response.ok) {
+                    console.error("No se pudo actualizar el registro en el backend");
+                }
+            } catch (error) {
+                console.error("Error al sincronizar con el servidor:", error);
+            }
+        }
+
+        async function realizarMarcado(id, tipo) {
             const ahora = new Date();
             ahora.setSeconds(0, 0); 
             
@@ -300,7 +328,8 @@
                 showToast(`🚀 Salida: ${trabajadores[idx].nombre}. Pago calculado.`);
             }
             
-            localStorage.setItem('taller_trabajadores', JSON.stringify(trabajadores));
+            // Reemplazo de LocalStorage por persistencia en el backend
+            await guardarEnServidor(trabajadores[idx]);
             renderTable();
         }
 

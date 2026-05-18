@@ -169,7 +169,6 @@
             .sidebar.active { transform: translateX(0); }
             .content { margin-left: 0; width: 100%; }
             .top-bar { flex-direction: column; gap: 1rem; text-align: center; }
-            .nav-toggle { display: block; }
         }
 
         @media (max-width: 640px) {
@@ -191,7 +190,7 @@
 
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <i class="fa-solid fa-scissors"></i> TALLER DE SASTRERIA P & B
+            <i class="fa-solid fa-scissors"></i> TALLER P & B
         </div>
         <div class="nav-item active" onclick="window.location.href='index.html'"><i class="fa-solid fa-chart-pie"></i> Dashboard</div>
         <div class="nav-item" onclick="window.location.href='asistencia.html'"><i class="fa-solid fa-calendar-check"></i> Asistencia</div>
@@ -365,9 +364,9 @@
             render();
         }
 
-        // Detecta cambios desde la página de asistencia
+        // Sincroniza dinámicamente si se marcan asistencias desde otra pestaña
         window.addEventListener('storage', (e) => {
-            if (e.key === 'taller_trabajadores') {
+            if (e.key === 'taller_trabajadores' || e.key === 'taller_presupuesto') {
                 cargarDesdeLocalStorage();
             }
         });
@@ -383,16 +382,11 @@
 
             cuerpo.innerHTML = trabajadores.map(t => {
                 const sueldoBase = t.sueldoBase || 0;
-                
-                // LÓGICA SOLICITADA: Pago por hora = Sueldo / 62
                 const pagoPorHora = sueldoBase / 62;
-                
                 const horasAcum = t.horasAcumuladas || 0;
-                
-                // LÓGICA SOLICITADA: Monto a pagar = (Sueldo / 62) * Horas Trabajadas
                 const montoPagar = pagoPorHora * horasAcum;
                 
-                // Actualizar el objeto en memoria por si se necesita para el PDF
+                // Mantenemos actualizado el monto calculado en el objeto
                 t.montoAPagar = montoPagar;
 
                 const hrs = Math.floor(horasAcum);
@@ -419,9 +413,9 @@
 
         function guardarTrabajador() {
             const id = document.getElementById('editId').value;
-            const nombre = document.getElementById('tNombre').value.toUpperCase();
-            const dni = document.getElementById('tDni').value;
-            const telf = document.getElementById('tTelf').value;
+            const nombre = document.getElementById('tNombre').value.toUpperCase().trim();
+            const dni = document.getElementById('tDni').value.trim();
+            const telf = document.getElementById('tTelf').value.trim();
             const area = document.getElementById('tArea').value;
             const sueldoBase = parseFloat(document.getElementById('tSueldoBase').value || 400);
 
@@ -429,7 +423,9 @@
 
             if(id) {
                 const idx = trabajadores.findIndex(x => x.id == id);
-                trabajadores[idx] = { ...trabajadores[idx], nombre, dni, telf, area, sueldoBase };
+                if (idx !== -1) {
+                    trabajadores[idx] = { ...trabajadores[idx], nombre, dni, telf, area, sueldoBase };
+                }
             } else {
                 trabajadores.push({
                     id: Date.now(),
@@ -447,138 +443,143 @@
         }
 
         function pdfIndividual(id) {
-        const t = trabajadores.find(x => x.id === id);
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        
-        const pagoHora = t.sueldoBase / 62;
-        const hrsAcum = t.horasAcumuladas || 0;
-        const hrsTotales = Math.floor(hrsAcum);
-        const minsTotales = Math.round((hrsAcum - hrsTotales) * 60);
-        const ganadoTotal = t.montoAPagar || 0;
+            const t = trabajadores.find(x => x.id === id);
+            if (!t) return;
 
-        doc.setFillColor(15, 23, 42); 
-        doc.rect(0, 0, 210, 40, 'F');
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(18);
-        doc.text("REPORTE INDIVIDUAL DE TRABAJADOR", 105, 20, {align: 'center'});
-        doc.setFontSize(10);
-        doc.text(`TALLER | Fecha: ${new Date().toLocaleDateString()}`, 105, 30, {align: 'center'});
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            const pagoHora = t.sueldoBase / 62;
+            const hrsAcum = t.horasAcumuladas || 0;
+            const hrsTotales = Math.floor(hrsAcum);
+            const minsTotales = Math.round((hrsAcum - hrsTotales) * 60);
+            const ganadoTotal = t.montoAPagar || 0;
 
-        doc.setTextColor(40);
-        doc.setFontSize(11);
-        doc.text(`NOMBRE: ${t.nombre}`, 20, 50);
-        doc.text(`DNI: ${t.dni}`, 20, 57);
-        doc.text(`CELULAR: ${t.telf || 'No registrado'}`, 20, 64);
-        doc.text(`ÁREA: ${t.area}`, 20, 71);
-        
-        doc.text(`SUELDO BASE: S/ ${t.sueldoBase.toFixed(2)}`, 140, 50);
-        doc.text(`PAGO POR HORA: S/ ${pagoHora.toFixed(2)}`, 140, 57);
-        doc.text(`HORAS TOTALES: ${hrsTotales}h ${minsTotales}m`, 140, 64);
-        doc.setFont(undefined, 'bold');
-        doc.text(`MONTO A PAGAR: S/ ${ganadoTotal.toFixed(2)}`, 140, 71);
-        doc.setFont(undefined, 'normal');
+            doc.setFillColor(15, 23, 42); 
+            doc.rect(0, 0, 210, 40, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(18);
+            doc.text("REPORTE INDIVIDUAL DE TRABAJADOR", 105, 20, {align: 'center'});
+            doc.setFontSize(10);
+            doc.text(`TALLER | Fecha: ${new Date().toLocaleDateString()}`, 105, 30, {align: 'center'});
 
-        doc.autoTable({
-            startY: 85,
-            head: [['N°', 'Fecha', 'Entrada', 'Salida', 'Horas', 'Monto']],
-            body: (t.historial || []).map((h, i) => {
-                // Calculamos las horas de este registro específico (minutos / 60)
+            doc.setTextColor(40);
+            doc.setFontSize(11);
+            doc.text(`NOMBRE: ${t.nombre}`, 20, 50);
+            doc.text(`DNI: ${t.dni}`, 20, 57);
+            doc.text(`CELULAR: ${t.telf || 'No registrado'}`, 20, 64);
+            doc.text(`ÁREA: ${t.area}`, 20, 71);
+            
+            doc.text(`SUELDO BASE: S/ ${t.sueldoBase.toFixed(2)}`, 140, 50);
+            doc.text(`PAGO POR HORA: S/ ${pagoHora.toFixed(2)}`, 140, 57);
+            doc.text(`HORAS TOTALES: ${hrsTotales}h ${minsTotales}m`, 140, 64);
+            doc.setFont(undefined, 'bold');
+            doc.text(`MONTO A PAGAR: S/ ${ganadoTotal.toFixed(2)}`, 140, 71);
+            doc.setFont(undefined, 'normal');
+
+            const tableBody = (t.historial || []).map((h, i) => {
                 const horasDeEsteRegistro = h.minutos / 60;
                 const montoDeEsteRegistro = horasDeEsteRegistro * pagoHora;
-                
                 return [
                     i + 1, 
                     h.fecha, 
                     h.entrada, 
-                    h.salida, 
+                    h.salida || 'Sin registrar', 
                     `${Math.floor(h.minutos/60)}h ${h.minutos%60}m`, 
                     `S/ ${montoDeEsteRegistro.toFixed(2)}`
                 ];
-            }),
-            theme: 'striped',
-            headStyles: { fillColor: [37, 99, 235] }
-        });
+            });
 
-        doc.save(`Reporte_${t.nombre}.pdf`);
-    }
+            doc.autoTable({
+                startY: 85,
+                head: [['N°', 'Fecha', 'Entrada', 'Salida', 'Horas', 'Monto']],
+                body: tableBody,
+                theme: 'striped',
+                headStyles: { fillColor: [37, 99, 235] }
+            });
+
+            doc.save(`Reporte_${t.nombre}.pdf`);
+        }
 
         function generarReporteSemanal() {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        
-        doc.setFillColor(37, 99, 235);
-        doc.rect(0, 0, 210, 45, 'F');
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(20);
-        doc.text("PLANILLA GENERAL DE PAGOS", 105, 20, { align: 'center' });
-        doc.setFontSize(12);
-        doc.text("TALLER DE SASTRERIA", 105, 30, { align: 'center' });
+            if (trabajadores.length === 0) {
+                showToast("No hay datos de personal para exportar");
+                return;
+            }
 
-        const data = trabajadores.map((t, i) => {
-            const hrsAcum = t.horasAcumuladas || 0;
-            const hrs = Math.floor(hrsAcum);
-            const mins = Math.round((hrsAcum - hrs) * 60);
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
             
-            return [
-                i + 1, 
-                t.nombre, 
-                t.dni, 
-                t.area, 
-                `S/ ${(t.sueldoBase / 62).toFixed(2)}`,
-                `${hrs}h ${mins}m`, // Formato corregido aquí
-                `S/ ${(t.montoAPagar || 0).toFixed(2)}`
-            ];
-        });
+            doc.setFillColor(37, 99, 235);
+            doc.rect(0, 0, 210, 45, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(20);
+            doc.text("PLANILLA GENERAL DE PAGOS", 105, 20, { align: 'center' });
+            doc.setFontSize(12);
+            doc.text("TALLER DE SASTRERIA", 105, 30, { align: 'center' });
 
-        doc.autoTable({ 
-            startY: 55, 
-            head: [['ID', 'Nombre Completo', 'DNI', 'Área', 'P/H', 'Hrs.', 'Total a Pagar']], 
-            body: data,
-            styles: { fontSize: 8, cellPadding: 3 },
-            headStyles: { fillColor: [15, 23, 42] }
-        });
-        
-        doc.save("Planilla_General_Taller.pdf");
-    }
+            const data = trabajadores.map((t, i) => {
+                const hrsAcum = t.horasAcumuladas || 0;
+                const hrs = Math.floor(hrsAcum);
+                const mins = Math.round((hrsAcum - hrs) * 60);
+                
+                return [
+                    i + 1, 
+                    t.nombre, 
+                    t.dni, 
+                    t.area, 
+                    `S/ ${(t.sueldoBase / 62).toFixed(2)}`,
+                    `${hrs}h ${mins}m`,
+                    `S/ ${(t.montoAPagar || 0).toFixed(2)}`
+                ];
+            });
+
+            doc.autoTable({ 
+                startY: 55, 
+                head: [['ID', 'Nombre Completo', 'DNI', 'Área', 'P/H', 'Hrs.', 'Total a Pagar']], 
+                body: data,
+                styles: { fontSize: 8, cellPadding: 3 },
+                headStyles: { fillColor: [15, 23, 42] }
+            });
+            
+            doc.save("Planilla_General_Taller.pdf");
+        }
+
         function abrirPago(id, n, m) {
             document.getElementById('txtPagoSub').innerText = `Se liquidará un total de S/ ${m.toFixed(2)} a favor de ${n}.`;
             openModal('modalPago');
             
             document.getElementById('btnOkPago').onclick = () => {
                 if(presupuesto >= m) {
-                    // 1. Descontar del presupuesto lógico
                     presupuesto -= m;
-                    
-                    // 2. ACTUALIZACIÓN VISUAL INMEDIATA:
                     document.getElementById('valPresupuesto').innerText = presupuesto.toFixed(2);
                     
-                    // 3. Limpiar datos del trabajador
                     const t = trabajadores.find(x => x.id === id);
-                    t.horasAcumuladas = 0; 
-                    t.montoAPagar = 0; 
-                    t.historial = []; 
+                    if (t) {
+                        t.horasAcumuladas = 0; 
+                        t.montoAPagar = 0; 
+                        t.historial = []; 
+                    }
                     
-                    // 4. Guardar y refrescar la tabla
                     guardarEnLocalStorage();
                     closeModal('modalPago'); 
                     render();
-                    
-                    showToast(`Pago de S/ ${m.toFixed(2)} procesado`);
+                    showToast(`Pago de S/ ${m.toFixed(2)} procesado con éxito`);
                 } else {
-                    alert("Fondo de caja insuficiente");
+                    alert("Fondo de caja insuficiente en el presupuesto actual.");
                 }
             };
         }
 
         function abrirDespido(id, n) {
-            document.getElementById('txtPreguntaDespido').innerText = `¿Está seguro de despedir a ${n}?`;
+            document.getElementById('txtPreguntaDespido').innerText = `¿Está seguro de quitar a ${n} del sistema?`;
             openModal('modalDespido');
             document.getElementById('btnConfDespido').onclick = () => {
                 trabajadores = trabajadores.filter(x => x.id !== id);
                 guardarEnLocalStorage();
-                closeModal('modalDespido'); render();
-                showToast(`Se ha despedido a ${n}`);
+                closeModal('modalDespido'); 
+                render();
+                showToast(`Se ha removido a ${n}`);
             };
         }
 
@@ -588,8 +589,9 @@
             presupuesto += m;
             guardarEnLocalStorage();
             document.getElementById('valPresupuesto').innerText = presupuesto.toFixed(2);
+            document.getElementById('inputMonto').value = "";
             closeModal('modalDinero');
-            showToast("Capital actualizado");
+            showToast("Capital inyectado correctamente");
         }
 
         function openModal(id) { document.getElementById(id).style.display = 'block'; }
@@ -598,23 +600,27 @@
         function showToast(m) { 
             const t = document.getElementById('notif'); 
             document.getElementById('notifMsg').innerText = m; 
-            t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 3000); 
+            t.classList.add('show'); 
+            setTimeout(() => t.classList.remove('show'), 3000); 
         }
 
         function abrirModalTrabajador() {
             document.getElementById('editId').value = "";
             document.getElementById('tituloModalTrabajador').innerText = "Registrar Personal";
-            document.getElementById('tDni').value = ""; document.getElementById('tNombre').value = "";
-            document.getElementById('tTelf').value = ""; document.getElementById('tSueldoBase').value = "";
+            document.getElementById('tDni').value = ""; 
+            document.getElementById('tNombre').value = "";
+            document.getElementById('tTelf').value = ""; 
+            document.getElementById('tSueldoBase').value = "";
             openModal('modalTrabajador');
         }
 
         function editarPersonal(id) {
             const t = trabajadores.find(x => x.id == id);
+            if(!t) return;
             document.getElementById('editId').value = t.id;
             document.getElementById('tDni').value = t.dni;
             document.getElementById('tNombre').value = t.nombre;
-            document.getElementById('tTelf').value = t.telf;
+            document.getElementById('tTelf').value = t.telf || '';
             document.getElementById('tArea').value = t.area;
             document.getElementById('tSueldoBase').value = t.sueldoBase;
             document.getElementById('tituloModalTrabajador').innerText = "Editar Personal";
