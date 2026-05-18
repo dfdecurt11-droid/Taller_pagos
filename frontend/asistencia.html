@@ -15,6 +15,8 @@
             --danger-btn: #dc2626;
             --bg-main: #f1f5f9;
             --white: #ffffff;
+            --radius: 24px;
+            --shadow: 0 10px 25px -5px rgba(0,0,0,0.05);
         }
 
         * { box-sizing: border-box; font-family: 'Inter', sans-serif; }
@@ -24,8 +26,10 @@
             display: flex; 
             background: var(--bg-main); 
             min-height: 100vh;
+            transition: all 0.3s ease;
         }
         
+        /* SIDEBAR RESPONSIVO */
         .sidebar { 
             width: 260px; 
             background: var(--primary-dark); 
@@ -35,6 +39,7 @@
             display: flex; 
             flex-direction: column; 
             z-index: 1000;
+            transition: transform 0.3s ease;
         }
 
         .sidebar-header { 
@@ -77,39 +82,44 @@
             text-align: center;
         }
 
-        .logout-container { padding: 1.5rem; }
-        
-        .btn-logout {
-            width: 100%;
-            background: var(--danger-btn);
+        /* MENU HAMBURGUESA MOVIL */
+        .menu-toggle {
+            display: none;
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            background: var(--primary-dark);
             color: white;
             border: none;
-            padding: 14px;
-            border-radius: 12px;
-            font-weight: 700;
-            font-size: 0.9rem;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 1.2rem;
+            z-index: 1001;
             cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            transition: opacity 0.2s;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
         }
 
-        .btn-logout:hover { opacity: 0.9; }
+        /* OVERLAY PARA CERRAR CAPA EN MOVIL */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.4);
+            z-index: 998;
+        }
 
+        /* CONTENIDO PRINCIPAL */
         .content { 
             margin-left: 260px; 
             width: calc(100% - 260px); 
             padding: 2.5rem; 
+            transition: all 0.3s ease;
         }
 
         .container-main {
             background: var(--white);
-            border-radius: 24px;
-            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
             padding: 2rem;
             border: 1px solid rgba(0,0,0,0.02);
         }
@@ -147,13 +157,19 @@
         }
         .search-container i { position: absolute; left: 18px; top: 17px; color: #94a3b8; }
 
-        .table-wrapper { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; min-width: 800px; }
+        /* TABLA RESPONSIVA */
+        .table-wrapper { 
+            overflow-x: auto; 
+            width: 100%;
+            -webkit-overflow-scrolling: touch;
+        }
+        table { width: 100%; border-collapse: collapse; }
         th { 
             text-align: left; padding: 16px; 
             color: #64748b; font-size: 0.75rem; 
             text-transform: uppercase; letter-spacing: 1px;
             border-bottom: 2px solid #f1f5f9;
+            background: #f8fafc;
         }
         td { padding: 18px 16px; border-bottom: 1px solid #f1f5f9; font-size: 0.95rem; }
 
@@ -174,19 +190,37 @@
             display: none; z-index: 2000;
         }
 
+        /* RESPONSIVIDAD (Móviles y Tablets) */
         @media (max-width: 1024px) {
-            .sidebar { width: 80px; }
-            .sidebar-header span, .nav-item span, .btn-logout span { display: none; }
-            .content { margin-left: 80px; width: calc(100% - 80px); }
-            .sidebar-header { justify-content: center; padding: 1.5rem 0; }
+            .menu-toggle { display: block; }
+            .sidebar { transform: translateX(-100%); width: 260px; }
+            .sidebar.active { transform: translateX(0); }
+            .sidebar.active + .sidebar-overlay { display: block; }
+            
+            .content { margin-left: 0; width: 100%; padding: 5rem 1rem 2rem 1rem; }
+            .top-header { flex-direction: column; gap: 1.5rem; text-align: center; }
+            .search-container { max-width: 100%; }
+        }
+
+        @media (max-width: 640px) {
+            td { padding: 12px 10px; font-size: 0.85rem; }
+            th { padding: 12px 10px; font-size: 0.7rem; }
+            .btn-marc { padding: 8px 12px; font-size: 0.75rem; }
+            
+            /* Ocultar columnas secundarias en pantallas muy chicas para privilegiar espacio */
+            .col-hide-mobile { display: none; }
         }
     </style>
 </head>
 <body>
 
-    <div class="sidebar">
+    <!-- Botón hamburguesa y overlay para móviles -->
+    <button class="menu-toggle" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
+    <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+    <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <i class="fa-solid fa-scissors"></i> <span>TALLER DE SASTRERIA P & B</span>
+            <i class="fa-solid fa-scissors"></i> <span>TALLER P & B</span>
         </div>
         
         <nav class="nav-list">
@@ -220,8 +254,8 @@
                         <tr>
                             <th>Trabajador</th>
                             <th>Área</th>
-                            <th>Última Entrada</th>
-                            <th>Última Salida</th>
+                            <th class="col-hide-mobile">Última Entrada</th>
+                            <th class="col-hide-mobile">Última Salida</th>
                             <th style="text-align:right">Marcación</th>
                         </tr>
                     </thead>
@@ -234,13 +268,16 @@
     <div id="toast" class="toast"></div>
 
     <script>
-        // URL del backend en Render obtenida de tu panel
         const API_URL = 'https://taller-pagos.onrender.com/api/trabajadores';
 
         let trabajadores = [];
         const SUELDO_BASE = 300;
         const HORAS_SEMANALES = 62;
         const COSTO_HORA = SUELDO_BASE / HORAS_SEMANALES;
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('active');
+        }
 
         function actualizarReloj() {
             const ahora = new Date();
@@ -253,10 +290,9 @@
         function formatFechaHora(isoStr) {
             if (!isoStr) return '<span style="color:#cbd5e1">Sin registro</span>';
             const d = new Date(isoStr);
-            return `<b>${d.toLocaleDateString('es-PE')}</b> <small>|</small> ${d.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit', hour12:true})}`;
+            return `<b>${d.toLocaleDateString('es-PE')}</b> <small class="col-hide-mobile">|</small> <br class="menu-toggle">${d.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit', hour12:true})}`;
         }
 
-        // Cargar los datos directo de la API en lugar del LocalStorage
         async function cargarDatos() {
             try {
                 const response = await fetch(API_URL);
@@ -271,7 +307,6 @@
             }
         }
 
-        // Guardar el estado del trabajador modificado en el backend
         async function guardarEnServidor(trabajador) {
             try {
                 const response = await fetch(`${API_URL}/${trabajador.id}`, {
@@ -328,7 +363,6 @@
                 showToast(`🚀 Salida: ${trabajadores[idx].nombre}. Pago calculado.`);
             }
             
-            // Reemplazo de LocalStorage por persistencia en el backend
             await guardarEnServidor(trabajadores[idx]);
             renderTable();
         }
@@ -337,6 +371,11 @@
             const cuerpo = document.getElementById('tablaAsistencia');
             const lista = trabajadores.filter(t => t.nombre.toLowerCase().includes(filtro.toLowerCase()));
 
+            if (lista.length === 0) {
+                cuerpo.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:30px; color:#64748b;">No se encontraron resultados</td></tr>`;
+                return;
+            }
+
             cuerpo.innerHTML = lista.map(t => {
                 const enTurno = t.horaEntradaTemp && !t.horaSalidaTemp;
 
@@ -344,9 +383,9 @@
                 <tr style="${enTurno ? 'background: #f8fafc' : ''}">
                     <td><b>${t.nombre}</b></td>
                     <td><span style="background:#f1f5f9; padding:4px 8px; border-radius:6px; font-size:0.8rem;">${t.area || 'Taller'}</span></td>
-                    <td>${formatFechaHora(t.horaEntradaTemp)}</td>
-                    <td>${formatFechaHora(t.horaSalidaTemp)}</td>
-                    <td style="text-align:right">
+                    <td class="col-hide-mobile">${formatFechaHora(t.horaEntradaTemp)}</td>
+                    <td class="col-hide-mobile">${formatFechaHora(t.horaSalidaTemp)}</td>
+                    <td style="text-align:right; white-space: nowrap;">
                         <button class="btn-marc btn-in" onclick="realizarMarcado(${t.id}, 'entrada')" ${enTurno ? 'disabled style="opacity:0.5; cursor:not-allowed"' : ''}>Entrada</button>
                         <button class="btn-marc btn-out" onclick="realizarMarcado(${t.id}, 'salida')" ${!enTurno ? 'disabled style="opacity:0.5; cursor:not-allowed"' : ''}>Salida</button>
                     </td>
@@ -362,12 +401,6 @@
             t.innerHTML = msj;
             t.style.display = 'block';
             setTimeout(() => { t.style.display = 'none'; }, 3000);
-        }
-
-        function cerrarSesion() {
-            if(confirm("¿Está seguro que desea cerrar sesión?")) {
-                window.location.href = 'login.html';
-            }
         }
 
         document.addEventListener('DOMContentLoaded', () => {
