@@ -443,6 +443,9 @@
                 const hrs = Math.floor(horasAcum);
                 const mins = Math.round((horasAcum - hrs) * 60);
 
+                // Forzamos el ID a Number para pasarlo seguro en las funciones inline de los botones
+                const seguroId = Number(t.id);
+
                 return `<tr>
                     <td>
                         <div style="font-weight:700; color:var(--primary)">${t.nombre}</div>
@@ -456,17 +459,17 @@
                     <td><i class="fa-regular fa-clock"></i> ${hrs}h ${mins}m</td>
                     <td><b style="color:var(--success); font-size:1rem;">S/ ${montoPagar.toFixed(2)}</b></td>
                     <td style="text-align: right; white-space: nowrap;">
-                        <button class="btn btn-outline btn-icon" title="Pagar" onclick="abrirPago(${t.id}, '${t.nombre}', ${montoPagar})"><i class="fa-solid fa-hand-holding-dollar" style="color:var(--success)"></i></button>
-                        <button class="btn btn-outline btn-icon" title="Editar" onclick="editarPersonal(${t.id})"><i class="fa-solid fa-user-pen" style="color:var(--accent)"></i></button>
-                        <button class="btn btn-outline btn-icon" title="PDF" onclick="pdfIndividual(${t.id})"><i class="fa-solid fa-file-pdf"></i></button>
-                        <button class="btn btn-outline btn-icon" title="Eliminar" onclick="abrirDespido(${t.id}, '${t.nombre}')"><i class="fa-solid fa-trash-can" style="color:var(--danger)"></i></button>
+                        <button class="btn btn-outline btn-icon" title="Pagar" onclick="abrirPago(${seguroId}, '${t.nombre}', ${montoPagar})"><i class="fa-solid fa-hand-holding-dollar" style="color:var(--success)"></i></button>
+                        <button class="btn btn-outline btn-icon" title="Editar" onclick="editarPersonal(${seguroId})"><i class="fa-solid fa-user-pen" style="color:var(--accent)"></i></button>
+                        <button class="btn btn-outline btn-icon" title="PDF" onclick="pdfIndividual(${seguroId})"><i class="fa-solid fa-file-pdf"></i></button>
+                        <button class="btn btn-outline btn-icon" title="Eliminar" onclick="abrirDespido(${seguroId}, '${t.nombre}')"><i class="fa-solid fa-trash-can" style="color:var(--danger)"></i></button>
                     </td>
                 </tr>`;
             }).join('');
         }
 
         function guardarTrabajador() {
-            const id = document.getElementById('editId').value;
+            const idForm = document.getElementById('editId').value;
             const nombre = document.getElementById('tNombre').value.toUpperCase().trim();
             const dni = document.getElementById('tDni').value.trim();
             const telf = document.getElementById('tTelf').value.trim();
@@ -475,14 +478,15 @@
 
             if(!nombre || !dni) { showToast("Nombre y DNI requeridos"); return; }
 
-            if(id) {
-                const idx = trabajadores.findIndex(x => x.id == id);
+            if(idForm) {
+                const numId = Number(idForm);
+                const idx = trabajadores.findIndex(x => Number(x.id) === numId);
                 if (idx !== -1) {
                     trabajadores[idx] = { ...trabajadores[idx], nombre, dni, telf, area, sueldoBase };
                 }
             } else {
                 trabajadores.push({
-                    id: Date.now(),
+                    id: Date.now(), // ID numérico limpio
                     nombre, dni, telf, area,
                     sueldoBase,
                     horasAcumuladas: 0,
@@ -497,7 +501,8 @@
         }
 
         function pdfIndividual(id) {
-            const t = trabajadores.find(x => x.id === id);
+            const numId = Number(id);
+            const t = trabajadores.find(x => Number(x.id) === numId);
             if (!t) return;
 
             const { jsPDF } = window.jspdf;
@@ -608,7 +613,8 @@
                     presupuesto -= m;
                     document.getElementById('valPresupuesto').innerText = presupuesto.toFixed(2);
                     
-                    const t = trabajadores.find(x => x.id === id);
+                    const numId = Number(id);
+                    const t = trabajadores.find(x => Number(x.id) === numId);
                     if (t) {
                         t.horasAcumuladas = 0; 
                         t.montoAPagar = 0; 
@@ -629,7 +635,8 @@
             document.getElementById('txtPreguntaDespido').innerText = `¿Está seguro de quitar a ${n} del sistema?`;
             openModal('modalDespido');
             document.getElementById('btnConfDespido').onclick = () => {
-                trabajadores = trabajadores.filter(x => x.id !== id);
+                const numId = Number(id);
+                trabajadores = trabajadores.filter(x => Number(x.id) !== numId);
                 guardarEnLocalStorage();
                 closeModal('modalDespido'); 
                 render();
@@ -669,7 +676,8 @@
         }
 
         function editarPersonal(id) {
-            const t = trabajadores.find(x => x.id == id);
+            const numId = Number(id);
+            const t = trabajadores.find(x => Number(x.id) === numId);
             if(!t) return;
             document.getElementById('editId').value = t.id;
             document.getElementById('tDni').value = t.dni;
